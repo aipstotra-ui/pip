@@ -1,0 +1,155 @@
+import XCTest
+@testable import Pip
+
+@MainActor
+private final class FakeWorkspace: WorkspaceProviding {
+    var runningURLs: [String: URL] = [:]
+    var installedURLs: [String: URL] = [:]
+    var trustedURLs: Set<URL> = []
+    var activateResult = true
+    var openAppResult = true
+    var openWebResult = true
+
+    private(set) var activatedURL: URL?
+    private(set) var openedAppURL: URL?
+    private(set) var openedWebURL: URL?
+
+    func runningAppURL(bundleId: String) -> URL? { runningURLs[bundleId] }
+    func installedAppURL(bundleId: String) -> URL? { installedURLs[bundleId] }
+
+    func isTrusted(appAt url: URL, bundleId: String, teamId: String?) async -> Bool {
+        trustedURLs.contains(url)
+    }
+
+    func activate(appAt url: URL) -> Bool {
+        activatedURL = url
+        return activateResult
+    }
+
+    func openApp(at url: URL) async -> Bool {
+        openedAppURL = url
+        return openAppResult
+    }
+
+    func openWeb(_ url: URL) -> Bool {
+        openedWebURL = url
+        return openWebResult
+    }
+}
+
+@MainActor
+final class LauncherTests: XCTestCase {
+
+    private let webURL = URL(string: "https://example.com")!
+    private let bundleA = "com.example.a"
+    private let bundleB = "com.example.b"
+    private let installedURLA = URL(string: "file:///Applications/A.app")!
+    private let installedURLB = URL(string: "file:///Applications/B.app")!
+
+    private func makeTarget(
+        bundleIds: [String] = [],
+        teamId: String? = nil,
+        webURL: URL? = nil,
+        kind: AITarget.Kind
+    ) -> AITarget {
+        AITarget(id: "test-app", name: "Test App", bundleIds: bundleIds,
+                 teamId: teamId, webURL: webURL ?? self.webURL, kind: kind)
+    }
+
+    func testWebKindOpensWebWithNoWarning() async {
+        let workspace = FakeWorkspace()
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: makeTarget(kind: .web))
+        XCTAssertEqual(plan, .openWeb(webURL, warning: nil))
+    }
+
+    func testCLIKindRunsCLI() async {
+        let workspace = FakeWorkspace()
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: makeTarget(kind: .cli))
+        XCTAssertEqual(plan, .runCLI)
+    }
+
+    func testRunningAndTrustedActivates() async {
+        let workspace = FakeWorkspace()
+        workspace.runningURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: makeTarget(bundleIds: [bundleA], kind: .app))
+        XCTAssertEqual(plan, .activate(appURL: installedURLA))
+    }
+
+    func testRunningButUntrustedOpensWebWithWarning() async {
+        let workspace = FakeWorkspace()
+        workspace.runningURLs[bundleA] = installedURLA
+        // Not added to trustedURLs, so isTrusted returns false.
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: makeTarget(bundleIds: [bundleA], kind: .app))
+        guard case .openWeb(let url, let warning) = plan else {
+            return XCTFail("expected openWeb, got \(plan)")
+        }
+        XCTAssertEqual(url, webURL)
+        XCTAssertNotNil(warning)
+    }
+
+    func testInstalledButUntrustedOpensWebWithWarning() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        // Not added to trustedURLs, so isTrusted returns false.
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: makeTarget(bundleIds: [bundleA], kind: .app))
+        guard case .openWeb(let url, let warning) = plan else {
+            return XCTFail("expected openWeb, got \(plan)")
+        }
+        XCTAssertEqual(url, webURL)
+        XCTAssertNotNil(warning)
+    }
+
+    func testInstalledAndTrustedLaunchesVerifiedURL() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: makeTarget(bundleIds: [bundleA], kind: .app))
+        XCTAssertEqual(plan, .launch(appURL: installedURLA))
+    }
+
+    func testSecondBundleIdUsedWhenFirstNotFound() async {
+        let workspace = FakeWorkspace()
+        // bundleA is not installed/running at all; only bundleB is.
+        workspace.installedURLs[bundleB] = installedURLB
+        workspace.trustedURLs = [installedURLB]
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: makeTarget(bundleIds: [bundleA, bundleB], kind: .app))
+        XCTAssertEqual(plan, .launch(appURL: installedURLB))
+    }
+
+    func testUnsafeWebURLRefuses() async {
+        let workspace = FakeWorkspace()
+        let launcher = Launcher(workspace: workspace)
+        let unsafe = URL(string: "http://example.com")!
+        let plan = await launcher.plan(for: makeTarget(webURL: unsafe, kind: .web))
+        guard case .refuse = plan else {
+            return XCTFail("expected refuse, got \(plan)")
+        }
+    }
+
+    // MARK: - summon
+
+    func testSummonCLIReturnsNeedsFolder() async {
+        let workspace = FakeWorkspace()
+        let launcher = Launcher(workspace: workspace)
+        let outcome = await launcher.summon(makeTarget(kind: .cli))
+        XCTAssertEqual(outcome, .needsFolder)
+    }
+
+    func testSummonOpenWebFailureReturnsFailed() async {
+        let workspace = FakeWorkspace()
+        workspace.openWebResult = false
+        let launcher = Launcher(workspace: workspace)
+        let outcome = await launcher.summon(makeTarget(kind: .web))
+        guard case .failed = outcome else {
+            return XCTFail("expected failed, got \(outcome)")
+        }
+    }
+}
