@@ -8,7 +8,7 @@ Status key: [ ] todo · [~] in progress · [x] done
 - [x] **M2 Launcher + registry**: catalog.json, detection, open/focus/web fallback, click menu
   - Click-vs-drag threshold: done
 - [x] **M3 Quick bar**: ⌃⌥Space panel, fuzzy search, keyboard navigation
-- [~] **M4 Sprite animation**: state machine + AI-generated artwork *(optimizer pass)* → awaiting user manual check
+- [x] **M4 Sprite animation**: state machine + AI-generated artwork *(optimizer pass)*
 - ~~M5 Voice~~: moved to Later (user decision, 2026-09-28)
 - [ ] **M6 Settings**: enable/reorder, custom apps, app-vs-web override, hotkeys
 - [ ] **M7 Polish**: launch at login, multi-monitor, saved position, error toasts *(optimizer pass)*
