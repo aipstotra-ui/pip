@@ -6,6 +6,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBar: MenuBarController?
     private var ringMenu: RingMenuController?
     private var cliFlow: CLIFlow?
+    private var quickBar: QuickBarController?
+    private var quickBarHotKey: HotKey?
     private let launcher = Launcher()
     private let bubble = SpeechBubble()
     /// Targets whose summon is still running (the signature check can take seconds); repeats are ignored.
@@ -15,8 +17,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         if CommandLine.arguments.contains("--qa-plan") { return runQAPlan() }
         #endif
+        let registry = AppRegistry.load()
         let pet = PetWindow()
-        let ring = RingMenuController(registry: AppRegistry.load()) { [weak self] target in
+        let ring = RingMenuController(registry: registry) { [weak self] target in
             self?.summon(target)
         }
         pet.onClick = { [weak ring, weak pet] in
@@ -30,9 +33,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ringMenu = ring
         menuBar = MenuBarController(petWindow: pet)
         cliFlow = CLIFlow { [weak self] message in self?.say(message) }
+
+        let quickBar = QuickBarController(registry: registry) { [weak self] target, anchor in
+            self?.summon(target, anchor: anchor)
+        }
+        self.quickBar = quickBar
+        quickBarHotKey = HotKey(HotKey.quickBarDefault) { [weak self] in
+            self?.ringMenu?.close()
+            self?.quickBar?.toggle()
+        }
+        if quickBarHotKey == nil {
+            say("I couldn't set up the ⌃⌥Space shortcut, so the quick bar is off for now.")
+        }
     }
 
-    private func summon(_ target: AITarget) {
+    /// `anchor` is where follow-up menus (the CLI folder menu) appear; defaults to just above Pip.
+    private func summon(_ target: AITarget, anchor: NSPoint? = nil) {
         guard summoning.insert(target.id).inserted else { return }
         Task {
             defer { summoning.remove(target.id) }
@@ -40,7 +56,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .done(let warning):
                 if let warning { say(warning) }
             case .needsFolder(let tool):
-                if let pet = petWindow { cliFlow?.start(tool, at: NSPoint(x: pet.frame.midX, y: pet.frame.maxY)) }
+                guard let point = anchor ?? petWindow.map({ NSPoint(x: $0.frame.midX, y: $0.frame.maxY) }) else { return }
+                cliFlow?.start(tool, at: point)
             case .failed(let message):
                 say(message)
             }

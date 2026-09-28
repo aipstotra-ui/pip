@@ -36,3 +36,9 @@
 | 2026-09-27 | Logos: original drawn symbols (AISymbols.swift); no downloaded brand assets | the user declined downloads; Gemini's icon needs Google's permission for distribution |
 | 2026-09-27 | ChatGPT keeps bundle id com.openai.codex: on this Mac the installed app named 'ChatGPT' uses it (verified) | security review Low note |
 | 2026-09-27 | Claude Code project `.claude/settings.json` has `ask` rules for sudo/curl/wget/rm -rf/git push/gh repo create/~/.ssh/~/.aws | user rule, ask before risky actions |
+| 2026-09-27 | Global hotkey: native Carbon `RegisterEventHotKey`, no package | User choice; no third-party code, works sandboxed, needs no Accessibility permission |
+| 2026-09-27 | Quick bar shortcut ⌃⌥Space (not ⌥Space) | ⌥Space is ChatGPT desktop's default shortcut |
+| 2026-09-27 | Quick bar lists all 9 targets, including branch tools | User choice |
+| 2026-09-27 | Quick bar ranking: exact > prefix > word-prefix > initials (cc → Claude Code) > contains > subsequence; aliases ×0.9; branch tools −10 on near-ties | Claude should outrank Codex for 'c' |
+| 2026-09-27 | Quick bar is a nonactivating key panel at .modalPanel level that closes on resign-key | Typing without stealing focus; security review found it acceptable |
+| 2026-09-27 | Hotkey conflicts can't be detected (Carbon only rejects duplicates inside Pip); M6 adds a shortcut recorder | Code review. ⌃⌥Space is macOS's 'next input source' default (disabled on this Mac) |

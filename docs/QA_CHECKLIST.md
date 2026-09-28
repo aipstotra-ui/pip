@@ -27,8 +27,12 @@ Last run 2026-09-27: window layer 3 (floating), 96×96pt, idle CPU 0.0%, RSS ~85
 Last run 2026-09-27: qa-plan decisions all as expected, sandbox active, idle CPU 0.0%, 70/70 tests pass
 
 ## M3
-- [ ] ⌥Space opens the quick bar. Esc closes it
-- [ ] "cur" + Enter → Cursor. Arrow keys move the selection
+- [ ] ⌃⌥Space opens the quick bar on the mouse's screen
+- [ ] "cla" → Claude first
+- [ ] ↑/↓, Return, Esc, the hotkey again, and a click elsewhere all close it
+- [ ] "codex" → folder menu near the bar
+- [ ] the ring and bar are never both open
+- [ ] light/dark previews at ~/Library/Containers/com.pipapp.Pip/Data/tmp/pip-quickbar-preview/
 
 ## M4
 - [ ] Each state animates: idle, walk, happy (after a summon), sleep (after idle time), listening

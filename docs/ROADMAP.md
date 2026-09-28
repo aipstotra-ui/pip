@@ -5,9 +5,9 @@ Status key: [ ] todo · [~] in progress · [x] done
 ## v0.1: launch + focus
 - [x] **Setup**: install Xcode (blocker, the user has to do this)
 - [x] **M1 Skeleton**: Xcode project, menu-bar agent, transparent draggable pet (placeholder)
-- [~] **M2 Launcher + registry**: catalog.json, detection, open/focus/web fallback, click menu *(awaiting user manual check)*
+- [x] **M2 Launcher + registry**: catalog.json, detection, open/focus/web fallback, click menu
   - Click-vs-drag threshold: done
-- [ ] **M3 Quick bar**: ⌥Space panel, fuzzy search, keyboard navigation
+- [~] **M3 Quick bar**: ⌃⌥Space panel, fuzzy search, keyboard navigation *(awaiting user manual check)*
 - [ ] **M4 Sprite animation**: state machine + AI-generated artwork *(optimizer pass)*
 - [ ] **M5 Voice**: push-to-talk, permissions, alias matching
 - [ ] **M6 Settings**: enable/reorder, custom apps, app-vs-web override, hotkeys
@@ -19,5 +19,7 @@ Developer ID signing + notarization (needs the user's Apple Developer account; a
 Post-launch dynamic signature check (TOCTOU hardening, low priority)
 Run the Terminal AppleScript off the main thread (the first-time permission prompt blocks the UI)
 Ring icons/labels based on the signature check (currently an installed-but-untrusted app shows its icon even though the website opens; security Low)
+Quick bar: show that more results exist beyond the 6 visible (fade or count)
+M6: shortcut recorder to rebind ⌃⌥Space (it's macOS's default 'next input source' shortcut, which is disabled on this Mac but may clash for other users)
 
 ## Open questions (ask the user before the milestone that needs the answer)

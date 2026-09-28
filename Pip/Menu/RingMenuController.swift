@@ -29,8 +29,8 @@ final class RingMenuController {
 
         let center = NSPoint(x: petFrame.midX, y: petFrame.midY)
         let entries = targets.map { target in
-            RingEntry(target: target, icon: Self.icon(for: target),
-                      children: registry.children(of: target).map { ($0, Self.icon(for: $0)) })
+            RingEntry(target: target, icon: TargetIcon.appIcon(for: target),
+                      children: registry.children(of: target).map { ($0, TargetIcon.appIcon(for: $0)) })
         }
         let scene = Self.scene(for: entries, center: center, bounds: screen.visibleFrame, screenFrame: screen.frame)
 
@@ -209,17 +209,6 @@ final class RingMenuController {
             return CGPoint(x: center.x + layout.radius * cos(rad), y: center.y + layout.radius * sin(rad))
         }
         return samples + layout.points
-    }
-
-    /// The installed app's own icon, or nil for web/CLI targets and apps that aren't installed.
-    private static func icon(for target: AITarget) -> NSImage? {
-        guard target.kind == .app else { return nil }
-        for id in target.bundleIds {
-            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
-                return NSWorkspace.shared.icon(forFile: url.path)
-            }
-        }
-        return nil
     }
 }
 

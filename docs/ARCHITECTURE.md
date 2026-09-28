@@ -5,7 +5,7 @@ Pip.app (LSUIElement menu-bar agent)
 ├── PetWindow        NSPanel: borderless, clear, .floating, canJoinAllSpaces, draggable
 │   └── SpriteView   frame animator driven by PetStateMachine (idle/walk/happy/sleep/listening)
 ├── PetMenu          popover on pet click → enabled AI targets
-├── QuickBar         global hotkey (⌥Space) → fuzzy search panel
+├── QuickBar         global hotkey (⌃⌥Space) → fuzzy search panel
 ├── VoiceController  push-to-talk → SFSpeechRecognizer (on-device) → alias match
 ├── AppRegistry      catalog.json + custom.json → [AITarget]; installed-app detection
 ├── Launcher         the ONLY summon path
@@ -29,11 +29,12 @@ click / quick bar / voice → AITarget → Launcher.summon(target)
 |---|---|
 | App lifecycle, menu bar | `App/PipApp.swift`, `AppDelegate.swift`, `MenuBarController.swift` |
 | Pet window and animation | `Pet/PetWindow.swift`, `SpriteView.swift`, `PetStateMachine.swift`, `PetMenuView.swift`, `PixelArt.swift`, `SpeechBubble.swift` |
-| Quick bar | `QuickBar/QuickBarPanel.swift`, `QuickBarView.swift`, `FuzzyMatcher.swift` |
+| Quick bar | `QuickBar/QuickBarController.swift`, `QuickBarView.swift`, `QuickBarModel.swift`, `FuzzyMatcher.swift` |
+| Global hotkey | `App/HotKey.swift` |
 | Voice | `Voice/VoiceController.swift` |
 | Data | `Registry/AITarget.swift`, `AppRegistry.swift`, `catalog.json`, `TargetValidator.swift` |
 | Launching | `Launch/Launcher.swift`, `CodeTrust.swift`, `TerminalLauncher.swift`, `CLIFlow.swift`, `RecentFolders.swift` |
-| Menu | `Menu/BranchLayout.swift`, `RingLayout.swift`, `RingMenuModel.swift`, `RingMenuView.swift`, `RingMenuController.swift`, `AISymbols.swift` |
+| Menu | `Menu/BranchLayout.swift`, `RingLayout.swift`, `RingMenuModel.swift`, `RingMenuView.swift`, `RingMenuController.swift`, `AISymbols.swift`, `TargetIcon.swift` |
 | Settings | `Settings/SettingsView.swift` |
 
 ## AITarget schema
