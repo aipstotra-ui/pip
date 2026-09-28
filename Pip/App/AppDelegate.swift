@@ -5,7 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var petWindow: PetWindow?
     private var menuBar: MenuBarController?
     private var ringMenu: RingMenuController?
-    private var claudeCode: ClaudeCodeFlow?
+    private var cliFlow: CLIFlow?
     private let launcher = Launcher()
     private let bubble = SpeechBubble()
     /// Targets whose summon is still running (the signature check can take seconds); repeats are ignored.
@@ -29,7 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         petWindow = pet
         ringMenu = ring
         menuBar = MenuBarController(petWindow: pet)
-        claudeCode = ClaudeCodeFlow { [weak self] message in self?.say(message) }
+        cliFlow = CLIFlow { [weak self] message in self?.say(message) }
     }
 
     private func summon(_ target: AITarget) {
@@ -39,8 +39,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             switch await launcher.summon(target) {
             case .done(let warning):
                 if let warning { say(warning) }
-            case .needsFolder:
-                if let pet = petWindow { claudeCode?.start(at: NSPoint(x: pet.frame.midX, y: pet.frame.maxY)) }
+            case .needsFolder(let tool):
+                if let pet = petWindow { cliFlow?.start(tool, at: NSPoint(x: pet.frame.midX, y: pet.frame.maxY)) }
             case .failed(let message):
                 say(message)
             }
@@ -67,10 +67,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .activate: "activate running app"
                 case .launch: "launch installed app"
                 case .openWeb(_, let warning): warning == nil ? "open website" : "open website (UNTRUSTED app found)"
-                case .runCLI: "ask for folder, run in Terminal"
+                case .runCLI(let tool): "ask for folder, run `\(tool.command)` in Terminal"
                 case .refuse: "refuse"
                 }
-                print("\(target.id): \(summary) [\(ms) ms]")
+                let branch = target.parent.map { " (branch of \($0))" } ?? ""
+                print("\(target.id)\(branch): \(summary) [\(ms) ms]")
             }
             NSApp.terminate(nil)
         }

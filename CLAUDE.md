@@ -26,6 +26,7 @@ Requires full Xcode. Always build into `$TMPDIR/pip-dd` (per-user private temp; 
 - AI targets are data (`Registry/catalog.json` + user `custom.json`), never hardcoded in UI.
 - UI and AppKit code is `@MainActor`. No polling timers; animation is driven by the display link.
 - Pet frames are named `<state>_<n>` in `Assets.xcassets/Pet`.
+- Ask the user and wait for an explicit yes before sudo, curl/wget (any download), rm -rf, git push, gh repo create, or reading ~/.ssh or ~/.aws (enforced by `.claude/settings.json` ask rules). Subagents report back instead of running these.
 - Keep files small and single-purpose. Add tests for pure logic (matching, registry, launch decisions).
 
 ## Workflow

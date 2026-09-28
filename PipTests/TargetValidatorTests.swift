@@ -101,9 +101,34 @@ final class TargetValidatorTests: XCTestCase {
     }
 
     func testCLIAllowedOnlyForBundledSource() {
-        let t = makeTarget(kind: .cli)
+        let t = makeTarget(kind: .cli, cli: .claude)
         XCTAssertTrue(TargetValidator.isValid(t, source: .bundled))
         XCTAssertFalse(TargetValidator.isValid(t, source: .user))
+    }
+
+    func testCLIRequiresTool() {
+        XCTAssertFalse(TargetValidator.isValid(makeTarget(kind: .cli), source: .bundled))
+        XCTAssertTrue(TargetValidator.isValid(makeTarget(kind: .cli, cli: .codex), source: .bundled))
+    }
+
+    func testAppAndWebCannotSetTool() {
+        let app = makeTarget(bundleIds: ["com.example.app"], kind: .app, cli: .claude)
+        let web = makeTarget(kind: .web, cli: .codex)
+        XCTAssertFalse(TargetValidator.isValid(app, source: .bundled))
+        XCTAssertFalse(TargetValidator.isValid(web, source: .bundled))
+    }
+
+    func testUserSourceCannotSetParentOrTool() {
+        XCTAssertFalse(TargetValidator.isValid(makeTarget(kind: .web, parent: "claude"), source: .user))
+        XCTAssertFalse(TargetValidator.isValid(makeTarget(kind: .cli, cli: .claude), source: .user))
+        XCTAssertFalse(TargetValidator.isValid(makeTarget(kind: .web, cli: .claude), source: .user))
+        XCTAssertTrue(TargetValidator.isValid(makeTarget(kind: .web), source: .user))
+    }
+
+    func testBundledParentMustBeWellFormedAndNotSelf() {
+        XCTAssertTrue(TargetValidator.isValid(makeTarget(kind: .cli, cli: .claude, parent: "claude"), source: .bundled))
+        XCTAssertFalse(TargetValidator.isValid(makeTarget(id: "loop", kind: .web, parent: "loop"), source: .bundled))
+        XCTAssertFalse(TargetValidator.isValid(makeTarget(kind: .web, parent: "Bad Parent!"), source: .bundled))
     }
 
     func testWebKindNeedsNoBundleIds() {
@@ -120,9 +145,11 @@ final class TargetValidatorTests: XCTestCase {
         bundleIds: [String] = [],
         teamId: String? = nil,
         webURL: URL = URL(string: "https://example.com")!,
-        kind: AITarget.Kind
+        kind: AITarget.Kind,
+        cli: CLITool? = nil,
+        parent: String? = nil
     ) -> AITarget {
         AITarget(id: id, name: name, aliases: aliases, bundleIds: bundleIds,
-                 teamId: teamId, webURL: webURL, kind: kind)
+                 teamId: teamId, webURL: webURL, kind: kind, cli: cli, parent: parent)
     }
 }

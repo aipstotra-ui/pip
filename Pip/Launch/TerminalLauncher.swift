@@ -1,13 +1,14 @@
 import AppKit
 import Carbon.OpenScripting
 
-/// Starts Claude Code (`claude`) in Terminal.app in a folder the user picked.
+/// Starts a `CLITool` (e.g. `claude`, `codex`) in Terminal.app in a folder the user picked.
 ///
-/// Security: the AppleScript source is a compile-time constant. The folder path is passed as an
-/// Apple Event parameter and shell-quoted by AppleScript's `quoted form of`, so it is never
-/// interpolated into script or shell text. Paths containing control characters are refused.
+/// Security: the AppleScript source is a compile-time constant. The folder path and the command are
+/// passed as Apple Event parameters, never interpolated into script text. The path is shell-quoted by
+/// AppleScript's `quoted form of`; the command comes only from the closed `CLITool` enum.
+/// Paths containing control characters are refused.
 @MainActor
-enum ClaudeCodeLauncher {
+enum TerminalLauncher {
     enum Failure: Error, Equatable {
         case invalidFolder
         case automationDenied
@@ -15,10 +16,10 @@ enum ClaudeCodeLauncher {
     }
 
     private static let scriptSource = """
-    on run_in(folderPath)
+    on run_in(folderPath, toolCommand)
         tell application id "com.apple.Terminal"
             activate
-            do script "cd -- " & quoted form of folderPath & " && claude"
+            do script "cd -- " & quoted form of folderPath & " && " & quoted form of toolCommand
         end tell
     end run_in
     """
@@ -31,7 +32,7 @@ enum ClaudeCodeLauncher {
             && path.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
     }
 
-    static func run(in folder: URL) -> Result<Void, Failure> {
+    static func run(_ tool: CLITool, in folder: URL) -> Result<Void, Failure> {
         let path = folder.resolvingSymlinksInPath().path
         guard isAcceptablePath(path) else { return .failure(.invalidFolder) }
 
@@ -41,6 +42,7 @@ enum ClaudeCodeLauncher {
 
         let params = NSAppleEventDescriptor.list()
         params.insert(NSAppleEventDescriptor(string: path), at: 1)
+        params.insert(NSAppleEventDescriptor(string: tool.command), at: 2)
 
         let event = NSAppleEventDescriptor(
             eventClass: AEEventClass(kASAppleScriptSuite),

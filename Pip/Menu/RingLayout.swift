@@ -6,6 +6,19 @@ import Foundation
 struct RingLayout: Equatable {
     let radius: CGFloat
     let points: [CGPoint]
+    /// Direction the arc faces, in degrees (AppKit convention: 0° = right, 90° = up).
+    let facing: Double
+    /// Angular extent in degrees; 360 means a full ring.
+    let span: Double
+
+    init(radius: CGFloat, points: [CGPoint], facing: Double = 90, span: Double = 360) {
+        self.radius = radius
+        self.points = points
+        self.facing = facing
+        self.span = span
+    }
+
+    var isFullRing: Bool { span >= 360 }
 
     static let iconSize: CGFloat = 44
     static let gap: CGFloat = 10
@@ -30,7 +43,7 @@ struct RingLayout: Equatable {
         let clamped = ring.points.map {
             CGPoint(x: min(max($0.x, safe.minX), safe.maxX), y: min(max($0.y, safe.minY), safe.maxY))
         }
-        return RingLayout(radius: ring.radius, points: clamped)
+        return RingLayout(radius: ring.radius, points: clamped, facing: ring.facing, span: ring.span)
     }
 
     static func arc(count: Int, center: CGPoint, facing: Double, span: Double) -> RingLayout {
@@ -54,6 +67,6 @@ struct RingLayout: Equatable {
             let rad = deg * .pi / 180
             return CGPoint(x: center.x + radius * cos(rad), y: center.y + radius * sin(rad))
         }
-        return RingLayout(radius: radius, points: points)
+        return RingLayout(radius: radius, points: points, facing: facing, span: isFull ? 360 : span)
     }
 }

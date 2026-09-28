@@ -50,10 +50,11 @@ final class LauncherTests: XCTestCase {
         bundleIds: [String] = [],
         teamId: String? = nil,
         webURL: URL? = nil,
-        kind: AITarget.Kind
+        kind: AITarget.Kind,
+        cli: CLITool? = nil
     ) -> AITarget {
         AITarget(id: "test-app", name: "Test App", bundleIds: bundleIds,
-                 teamId: teamId, webURL: webURL ?? self.webURL, kind: kind)
+                 teamId: teamId, webURL: webURL ?? self.webURL, kind: kind, cli: cli)
     }
 
     func testWebKindOpensWebWithNoWarning() async {
@@ -63,11 +64,27 @@ final class LauncherTests: XCTestCase {
         XCTAssertEqual(plan, .openWeb(webURL, warning: nil))
     }
 
-    func testCLIKindRunsCLI() async {
+    func testCLIKindRunsItsTool() async {
+        let launcher = Launcher(workspace: FakeWorkspace())
+        for tool in CLITool.allCases {
+            let plan = await launcher.plan(for: makeTarget(kind: .cli, cli: tool))
+            XCTAssertEqual(plan, .runCLI(tool))
+        }
+    }
+
+    func testCLIKindWithoutToolRefuses() async {
+        let launcher = Launcher(workspace: FakeWorkspace())
+        let plan = await launcher.plan(for: makeTarget(kind: .cli))
+        guard case .refuse = plan else { return XCTFail("expected refuse, got \(plan)") }
+    }
+
+    func testCLIKindNeverTouchesWorkspace() async {
         let workspace = FakeWorkspace()
         let launcher = Launcher(workspace: workspace)
-        let plan = await launcher.plan(for: makeTarget(kind: .cli))
-        XCTAssertEqual(plan, .runCLI)
+        _ = await launcher.summon(makeTarget(kind: .cli, cli: .codex))
+        XCTAssertNil(workspace.openedWebURL)
+        XCTAssertNil(workspace.openedAppURL)
+        XCTAssertNil(workspace.activatedURL)
     }
 
     func testRunningAndTrustedActivates() async {
@@ -136,11 +153,18 @@ final class LauncherTests: XCTestCase {
 
     // MARK: - summon
 
-    func testSummonCLIReturnsNeedsFolder() async {
-        let workspace = FakeWorkspace()
-        let launcher = Launcher(workspace: workspace)
+    func testSummonCLIReturnsNeedsFolderWithItsTool() async {
+        let launcher = Launcher(workspace: FakeWorkspace())
+        let claude = await launcher.summon(makeTarget(kind: .cli, cli: .claude))
+        let codex = await launcher.summon(makeTarget(kind: .cli, cli: .codex))
+        XCTAssertEqual(claude, .needsFolder(.claude))
+        XCTAssertEqual(codex, .needsFolder(.codex))
+    }
+
+    func testSummonCLIWithoutToolFails() async {
+        let launcher = Launcher(workspace: FakeWorkspace())
         let outcome = await launcher.summon(makeTarget(kind: .cli))
-        XCTAssertEqual(outcome, .needsFolder)
+        guard case .failed = outcome else { return XCTFail("expected failed, got \(outcome)") }
     }
 
     func testSummonOpenWebFailureReturnsFailed() async {

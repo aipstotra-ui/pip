@@ -6,7 +6,7 @@ enum LaunchPlan: Equatable {
     case launch(appURL: URL)
     /// `warning` is shown when a native app was found but failed the signature check.
     case openWeb(URL, warning: String?)
-    case runCLI
+    case runCLI(CLITool)
     case refuse(reason: String)
 }
 
@@ -26,7 +26,7 @@ protocol WorkspaceProviding {
 final class Launcher {
     enum Outcome: Equatable {
         case done(warning: String?)
-        case needsFolder   // CLI target: the caller asks the user for a folder
+        case needsFolder(CLITool)   // CLI target: the caller asks the user for a folder
         case failed(String)
     }
 
@@ -46,8 +46,8 @@ final class Launcher {
             // Defense in depth: re-check the URL right before handing it to the browser.
             guard TargetValidator.isSafeWebURL(url) else { return .failed("Blocked an unsafe link for \(target.name).") }
             return workspace.openWeb(url) ? .done(warning: warning) : .failed("Couldn't open \(target.name)'s website.")
-        case .runCLI:
-            return .needsFolder
+        case .runCLI(let tool):
+            return .needsFolder(tool)
         case .refuse(let reason):
             return .failed(reason)
         }
@@ -61,7 +61,8 @@ final class Launcher {
         case .web:
             return .openWeb(target.webURL, warning: nil)
         case .cli:
-            return .runCLI
+            guard let tool = target.cli else { return .refuse(reason: "\(target.name) has no command.") }
+            return .runCLI(tool)
         case .app:
             var foundUntrusted = false
             for bundleId in target.bundleIds {

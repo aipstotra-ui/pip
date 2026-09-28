@@ -18,6 +18,6 @@ Prompt handoff · drag & drop onto pet · two-way bridge · wake-word voice · m
 Developer ID signing + notarization (needs the user's Apple Developer account; ad-hoc builds reset the Terminal permission on each rebuild)
 Post-launch dynamic signature check (TOCTOU hardening, low priority)
 Run the Terminal AppleScript off the main thread (the first-time permission prompt blocks the UI)
+Ring icons/labels based on the signature check (currently an installed-but-untrusted app shows its icon even though the website opens; security Low)
 
 ## Open questions (ask the user before the milestone that needs the answer)
-- Grok Bot.app on this Mac is signed by Anysphere (Cursor's maker), not xAI. Add it as its own ring entry?

@@ -5,10 +5,12 @@ import Foundation
 @MainActor
 final class RecentFolders {
     static let maxCount = 5
-    private let defaultsKey = "claudeCodeRecentFolderBookmarks"
+    private let defaultsKey: String
     private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) {
+    /// Each tool keeps its own list. Claude Code keeps its original key so existing recents survive.
+    init(tool: CLITool, defaults: UserDefaults = .standard) {
+        self.defaultsKey = tool == .claude ? "claudeCodeRecentFolderBookmarks" : "\(tool.rawValue)RecentFolderBookmarks"
         self.defaults = defaults
     }
 

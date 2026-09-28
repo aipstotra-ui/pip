@@ -18,6 +18,11 @@ Last run 2026-09-27: window layer 3 (floating), 96×96pt, idle CPU 0.0%, RSS ~85
 - [ ] Not installed → the website opens in the default browser
 - [ ] Ring: Esc/click-outside/arrow keys+Return work; ring stays on-screen near edges
 - [ ] Claude Code: folder menu above Pip → pick folder → first time macOS asks 'Pip wants to control Terminal' → Terminal opens `claude` in that folder
+- [ ] Hover Claude/ChatGPT → branches appear (Chat + Claude Code / Codex); the connector never crosses other slots; Tab enters the branch
+- [ ] Codex branch → folder menu → Terminal runs `codex`
+- [ ] Ring looks like one frosted band with circular slots; the hover label is never covered by an icon (light and dark)
+- [ ] Drawn symbols for Gemini/Grok/Perplexity/Cursor in light and dark
+- [ ] Snapshot previews: RingMenuSnapshotTests writes PNGs to ~/Library/Containers/com.pipapp.Pip/Data/tmp/pip-ring-preview/
 
 Last run 2026-09-27: qa-plan decisions all as expected, sandbox active, idle CPU 0.0%, 70/70 tests pass
 

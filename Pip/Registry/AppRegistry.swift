@@ -9,6 +9,20 @@ struct AppRegistry: Sendable {
 
     let targets: [AITarget]
 
+    init(targets: [AITarget]) {
+        // A child needs an existing top-level parent; anything else is dropped (no deeper nesting).
+        let topLevelIds = Set(targets.filter { $0.parent == nil }.map(\.id))
+        self.targets = targets.filter { $0.parent.map(topLevelIds.contains) ?? true }
+    }
+
+    /// Items shown on the ring itself.
+    var topLevel: [AITarget] { targets.filter { $0.parent == nil } }
+
+    /// Items that branch out of `parent` when it's hovered, in catalog order.
+    func children(of parent: AITarget) -> [AITarget] {
+        targets.filter { $0.parent == parent.id }
+    }
+
     static var defaultCustomURL: URL? {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appendingPathComponent("Pip/custom.json")

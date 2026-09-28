@@ -18,10 +18,15 @@ enum TargetValidator {
               isSafeWebURL(t.webURL)
         else { return false }
 
+        // Grouping is a bundled-catalog feature; user files can't attach entries under built-in ones.
+        if let parent = t.parent {
+            guard source == .bundled, parent != t.id, matches(parent, #"^[a-z0-9-]{1,40}$"#) else { return false }
+        }
+
         switch t.kind {
-        case .cli: return source == .bundled   // user files can never define commands
-        case .app: return !t.bundleIds.isEmpty
-        case .web: return true
+        case .cli: return source == .bundled && t.cli != nil   // user files can never define commands
+        case .app: return !t.bundleIds.isEmpty && t.cli == nil
+        case .web: return t.cli == nil
         }
     }
 

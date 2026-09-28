@@ -26,3 +26,13 @@
 | 2026-09-27 | custom.json validation: no catalog id/name/alias reuse, no cli, O_NOFOLLOW+fstat read, one bad entry doesn't discard file | Prevent impersonation and command injection; malformed entries are logged only |
 | 2026-09-27 | Claude Code: constant AppleScript with folder parameter and quoted form of | Security: no shell interpolation. Recent folders are security-scoped bookmarks |
 | 2026-09-27 | Ring menu: full ring or 180°/90° arc away from edges; keyboard: arrows/Return/Esc | Adapt to screen edges; standard nav |
+| 2026-09-27 | Grok = xAI web only; ignore the local Grok Bot.app (Anysphere) | User choice |
+| 2026-09-27 | Git: local commit per milestone; GitHub push only on the user's "commit" | User request |
+| 2026-09-27 | Ring style: Apple Pencil Pro-like radial palette. One frosted-glass band (full ring or arc), 40pt circular slots, a single top-level name label outside the band (with suffix · Website / · Terminal). Clicking empty ring area or Pip closes it. | user feedback (label was hidden behind icons; wanted minimal circles) |
+| 2026-09-27 | Removed VS Code and Windsurf from the catalog | user request |
+| 2026-09-27 | Branches: items with children (Claude → Claude Code, ChatGPT → Codex) fan out beyond the ring on hover (120ms); clicking the parent opens chat. Tab enters the branch. | user idea |
+| 2026-09-27 | Codex = `codex` CLI in Terminal (like Claude Code) | user choice |
+| 2026-09-27 | CLI tools are a closed enum CLITool {claude, codex}; the AppleScript takes path and command as parameters, both via `quoted form of`. `claude`/`codex` resolve via the login shell PATH (accepted risk) | security |
+| 2026-09-27 | Logos: original drawn symbols (AISymbols.swift); no downloaded brand assets | the user declined downloads; Gemini's icon needs Google's permission for distribution |
+| 2026-09-27 | ChatGPT keeps bundle id com.openai.codex: on this Mac the installed app named 'ChatGPT' uses it (verified) | security review Low note |
+| 2026-09-27 | Claude Code project `.claude/settings.json` has `ask` rules for sudo/curl/wget/rm -rf/git push/gh repo create/~/.ssh/~/.aws | user rule, ask before risky actions |

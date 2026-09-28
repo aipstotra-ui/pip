@@ -146,13 +146,41 @@ final class AppRegistryTests: XCTestCase {
         let url = try XCTUnwrap(Bundle.main.url(forResource: "catalog", withExtension: "json"))
         let data = try Data(contentsOf: url)
         let decoded = AppRegistry.decode(data, source: .bundled)
-        XCTAssertEqual(decoded.count, 10)
+        XCTAssertEqual(decoded.count, 9)
     }
 
-    func testBundledCatalogHasExactlyOneCLIEntry() throws {
+    func testBundledCatalogHasTwoCLIEntriesUnderTheirChatApps() throws {
         let url = try XCTUnwrap(Bundle.main.url(forResource: "catalog", withExtension: "json"))
-        let data = try Data(contentsOf: url)
-        let decoded = AppRegistry.decode(data, source: .bundled)
-        XCTAssertEqual(decoded.filter { $0.kind == .cli }.count, 1)
+        let registry = AppRegistry(targets: AppRegistry.decode(try Data(contentsOf: url), source: .bundled))
+        let cli = registry.targets.filter { $0.kind == .cli }
+        XCTAssertEqual(cli.map(\.id), ["codex", "claude-code"])
+        XCTAssertEqual(cli.map(\.cli), [.codex, .claude])
+        XCTAssertEqual(cli.map(\.parent), ["chatgpt", "claude"])
+        XCTAssertEqual(registry.topLevel.map(\.id), ["chatgpt", "claude", "gemini", "grok", "copilot", "perplexity", "cursor"])
+    }
+
+    // MARK: - parent / children
+
+    private func web(_ id: String, parent: String? = nil) -> AITarget {
+        AITarget(id: id, name: id, webURL: URL(string: "https://example.com")!, kind: .web, parent: parent)
+    }
+
+    func testChildrenAppearInCatalogOrder() {
+        let registry = AppRegistry(targets: [web("a"), web("a2", parent: "a"), web("b"), web("a1", parent: "a")])
+        XCTAssertEqual(registry.topLevel.map(\.id), ["a", "b"])
+        XCTAssertEqual(registry.children(of: web("a")).map(\.id), ["a2", "a1"])
+        XCTAssertEqual(registry.children(of: web("b")), [])
+    }
+
+    func testOrphansAreDropped() {
+        let registry = AppRegistry(targets: [web("a"), web("lost", parent: "missing")])
+        XCTAssertEqual(registry.targets.map(\.id), ["a"])
+    }
+
+    func testNoNestingBeyondOneLevel() {
+        // "grandchild" hangs off a child, not a top-level item, so it is dropped.
+        let registry = AppRegistry(targets: [web("a"), web("child", parent: "a"), web("grandchild", parent: "child")])
+        XCTAssertEqual(registry.targets.map(\.id), ["a", "child"])
+        XCTAssertEqual(registry.children(of: web("child", parent: "a")), [])
     }
 }
