@@ -3,10 +3,10 @@
 ```
 Pip.app (LSUIElement menu-bar agent)
 ├── PetWindow        NSPanel: borderless, clear, .floating, canJoinAllSpaces, draggable
-│   └── SpriteView   frame animator driven by PetStateMachine (idle/walk/happy/sleep/listening)
+│   └── PetPixelView ← PetAnimator (idle/happy/sleeping/listening)
 ├── PetMenu          popover on pet click → enabled AI targets
 ├── QuickBar         global hotkey (⌃⌥Space) → fuzzy search panel
-├── VoiceController  push-to-talk → SFSpeechRecognizer (on-device) → alias match
+├── (future) VoiceController  push-to-talk → on-device speech → alias match
 ├── AppRegistry      catalog.json + custom.json → [AITarget]; installed-app detection
 ├── Launcher         the ONLY summon path
 ├── Settings         SwiftUI window
@@ -15,7 +15,7 @@ Pip.app (LSUIElement menu-bar agent)
 
 ## Summon path (all inputs converge here)
 ```
-click / quick bar / voice → AITarget → Launcher.summon(target)
+click / quick bar → AITarget → Launcher.summon(target)
   1. (M6) preference == .web? → open webURL
   2. running app with bundleId AND passes CodeTrust? → activate()
   3. running/installed AND passes CodeTrust? → openApplication(at:)
@@ -28,10 +28,10 @@ click / quick bar / voice → AITarget → Launcher.summon(target)
 | Concern | Files |
 |---|---|
 | App lifecycle, menu bar | `App/PipApp.swift`, `AppDelegate.swift`, `MenuBarController.swift` |
-| Pet window and animation | `Pet/PetWindow.swift`, `SpriteView.swift`, `PetStateMachine.swift`, `PetMenuView.swift`, `PixelArt.swift`, `SpeechBubble.swift` |
+| Pet window and animation | `Pet/PetWindow.swift (PetPixelView), PetAnimator.swift, PetStateMachine.swift, PipSprites.swift, PixelArt.swift, PixelArtImageCache.swift, SpeechBubble.swift` |
 | Quick bar | `QuickBar/QuickBarController.swift`, `QuickBarView.swift`, `QuickBarModel.swift`, `FuzzyMatcher.swift` |
 | Global hotkey | `App/HotKey.swift` |
-| Voice | `Voice/VoiceController.swift` |
+| Voice (future, not built) | planned `Voice/VoiceController.swift`. `PetState.listening` and its frames are already in place |
 | Data | `Registry/AITarget.swift`, `AppRegistry.swift`, `catalog.json`, `TargetValidator.swift` |
 | Launching | `Launch/Launcher.swift`, `CodeTrust.swift`, `TerminalLauncher.swift`, `CLIFlow.swift`, `RecentFolders.swift` |
 | Menu | `Menu/BranchLayout.swift`, `RingLayout.swift`, `RingMenuModel.swift`, `RingMenuView.swift`, `RingMenuController.swift`, `AISymbols.swift`, `TargetIcon.swift` |

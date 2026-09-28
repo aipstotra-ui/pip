@@ -42,3 +42,8 @@
 | 2026-09-27 | Quick bar ranking: exact > prefix > word-prefix > initials (cc → Claude Code) > contains > subsequence; aliases ×0.9; branch tools −10 on near-ties | Claude should outrank Codex for 'c' |
 | 2026-09-27 | Quick bar is a nonactivating key panel at .modalPanel level that closes on resign-key | Typing without stealing focus; security review found it acceptable |
 | 2026-09-27 | Hotkey conflicts can't be detected (Carbon only rejects duplicates inside Pip); M6 adds a shortcut recorder | Code review. ⌃⌥Space is macOS's 'next input source' default (disabled on this Mac) |
+| 2026-09-28 | Pip art: AI-generated sprite sheet (Higgsfield nano_banana_2), processed in Higgsfield's cloud sandbox (no file downloaded to the Mac), snapped to its 30px grid → 20×20 frames, hand touch-ups | User choice |
+| 2026-09-28 | Canvas 20×20 at 5× = 100pt window (was 16×16/96pt) | The AI frames need up to 18px plus jump headroom, and an integer scale keeps them crisp |
+| 2026-09-28 | Pet behavior: stays put; idle breathe/blink; happy bounce after a summon; sleeps after 5 min without interaction; wakes on hover/click/drag; listening frames reserved for M5 | User choice |
+| 2026-09-28 | Rendering: cached 20×20 CGImages swapped on a CALayer (nearest-neighbor), Task.sleep between frames, paused when occluded or displays sleep; no SwiftUI in the pet redraw path | Optimizer measured idle CPU 0.28% → 0.0% and RSS 83 → 80 MB |
+| 2026-09-28 | Voice (M5) moved to future development; listening state/frames kept for later | User decision |

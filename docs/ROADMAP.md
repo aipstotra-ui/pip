@@ -8,13 +8,13 @@ Status key: [ ] todo · [~] in progress · [x] done
 - [x] **M2 Launcher + registry**: catalog.json, detection, open/focus/web fallback, click menu
   - Click-vs-drag threshold: done
 - [x] **M3 Quick bar**: ⌃⌥Space panel, fuzzy search, keyboard navigation
-- [ ] **M4 Sprite animation**: state machine + AI-generated artwork *(optimizer pass)*
-- [ ] **M5 Voice**: push-to-talk, permissions, alias matching
+- [~] **M4 Sprite animation**: state machine + AI-generated artwork *(optimizer pass)* → awaiting user manual check
+- ~~M5 Voice~~: moved to Later (user decision, 2026-09-28)
 - [ ] **M6 Settings**: enable/reorder, custom apps, app-vs-web override, hotkeys
 - [ ] **M7 Polish**: launch at login, multi-monitor, saved position, error toasts *(optimizer pass)*
 
 ## Later (out of scope for v0.1)
-Prompt handoff · drag & drop onto pet · two-way bridge · wake-word voice · moods/skins · Windows
+Voice: push-to-talk (on-device speech, alias matching; listening frames already drawn) and later wake word · Prompt handoff · drag & drop onto pet · two-way bridge · moods/skins · Windows
 Developer ID signing + notarization (needs the user's Apple Developer account; ad-hoc builds reset the Terminal permission on each rebuild)
 Post-launch dynamic signature check (TOCTOU hardening, low priority)
 Run the Terminal AppleScript off the main thread (the first-time permission prompt blocks the UI)

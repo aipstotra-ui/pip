@@ -24,9 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         pet.onClick = { [weak ring, weak pet] in
             guard let ring, let pet else { return }
+            pet.animator.send(.interaction)
             ring.toggle(around: pet.frame)
         }
-        pet.onDragStart = { [weak ring] in ring?.close() }
+        pet.onDragStart = { [weak ring, weak pet] in
+            pet?.animator.send(.interaction)
+            ring?.close()
+        }
+        pet.onHover = { [weak pet] in pet?.animator.send(.interaction) }
         pet.orderFrontRegardless()
 
         petWindow = pet
@@ -54,6 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             defer { summoning.remove(target.id) }
             switch await launcher.summon(target) {
             case .done(let warning):
+                petWindow?.animator.send(.summoned)
                 if let warning { say(warning) }
             case .needsFolder(let tool):
                 guard let point = anchor ?? petWindow.map({ NSPoint(x: $0.frame.midX, y: $0.frame.maxY) }) else { return }

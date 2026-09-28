@@ -9,7 +9,7 @@ You are the performance and simplicity optimizer for Pip, a desktop pet that is 
 Read `CLAUDE.md` and `docs/ARCHITECTURE.md` first. Work only on the files or area named in your task.
 
 Priorities:
-1. Idle energy: no polling timers; animation paused when the pet is hidden or asleep; display-link or TimelineView driven; low frame rate for idle states
+1. Idle energy: no polling timers; animation paused when the pet is hidden or asleep; frame swaps on a CALayer (no SwiftUI invalidation per frame); low frame rate for idle states. Baseline after M4: 0.0% idle CPU, ~80 MB RSS, ~3 idle wakeups per second
 2. Memory: sprite frames loaded once and cached, sized to display size; no image decoding every frame
 3. Launch time: lazy-load the settings, quick bar, and speech stack
 4. Simplicity: remove dead code, duplication, and needless abstraction

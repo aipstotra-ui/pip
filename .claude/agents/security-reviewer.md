@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Reviews Pip for security and privacy issues in permissions (microphone, speech, automation), launching apps/URLs/terminal commands, custom.json input, and entitlements/signing. Use at M2 (launcher/CLI), M5 (voice), M6 (custom apps), and before any release.
+description: Reviews Pip for security and privacy issues in permissions (microphone, speech, automation), launching apps/URLs/terminal commands, custom.json input, and entitlements/signing. Use at every milestone and before any release.
 tools: Read, Grep, Glob, Bash
 model: opus
 ---

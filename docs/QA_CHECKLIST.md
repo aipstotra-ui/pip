@@ -9,7 +9,7 @@ Run only the sections for completed milestones. Report pass/fail per line, with 
 - [ ] Pet stays on top of other apps and follows across Spaces and full-screen apps
 - [ ] Pet can be dragged. Transparent areas pass clicks through
 
-Last run 2026-09-27: window layer 3 (floating), 96×96pt, idle CPU 0.0%, RSS ~85MB, 3/3 unit tests pass
+Last run 2026-09-27: window layer 3 (floating), 100×100pt, idle CPU 0.0%, RSS ~85MB, 3/3 unit tests pass
 
 ## M2
 - [ ] Click the pet → the menu lists the enabled targets
@@ -35,13 +35,14 @@ Last run 2026-09-27: qa-plan decisions all as expected, sandbox active, idle CPU
 - [ ] light/dark previews at ~/Library/Containers/com.pipapp.Pip/Data/tmp/pip-quickbar-preview/
 
 ## M4
-- [ ] Each state animates: idle, walk, happy (after a summon), sleep (after idle time), listening
-- [ ] CPU usage stays low when idle (check Activity Monitor)
+- [ ] breathe/blink
+- [ ] happy bounce after summon
+- [ ] sleeps after 5 min idle, wakes on hover
+- [ ] upright, crisp on Retina and external displays
+- [ ] idle CPU ≤ 0.1%
+- [ ] sprite preview at ~/Library/Containers/com.pipapp.Pip/Data/tmp/pip-sprite-preview/
 
-## M5
-- [ ] First use asks for microphone and speech permissions
-- [ ] Hold push-to-talk, say "open Gemini" → gemini.google.com opens
-- [ ] An unknown phrase gives friendly feedback
+## M5 (moved to future development: voice)
 
 ## M6–M7
 - [ ] Web override per app is respected

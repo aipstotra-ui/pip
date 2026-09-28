@@ -12,7 +12,7 @@ There's no LLM inside, and v0.1 is launch + focus only. See `docs/ROADMAP.md` fo
 
 ## Stack
 Swift + SwiftUI + AppKit, macOS only. **App Sandbox + hardened runtime** (`Config/Pip.entitlements`; Debug adds library-validation off for XCTest only). Menu-bar agent app (`LSUIElement`). Ad-hoc signed until a Developer ID exists.
-SPM dependency: `KeyboardShortcuts` (sindresorhus). Speech: on-device `SFSpeechRecognizer`.
+No third-party dependencies (global hotkey is native Carbon `RegisterEventHotKey`). Voice is future work, not built.
 
 ## Commands
 ```
@@ -24,7 +24,7 @@ Requires full Xcode. Always build into `$TMPDIR/pip-dd` (per-user private temp; 
 ## Conventions
 - Every summon goes through `Launcher.summon(_ target: AITarget)`. Don't open apps anywhere else.
 - AI targets are data (`Registry/catalog.json` + user `custom.json`), never hardcoded in UI.
-- UI and AppKit code is `@MainActor`. No polling timers; animation is driven by the display link.
+- UI and AppKit code is `@MainActor`. No polling timers. Pip animates via `PetAnimator` (Task.sleep between frames, paused when occluded or displays sleep) swapping cached 20×20 CGImages on a CALayer (nearest-neighbor).
 - Pet frames are named `<state>_<n>` in `Assets.xcassets/Pet`.
 - Ask the user and wait for an explicit yes before sudo, curl/wget (any download), rm -rf, git push, gh repo create, or reading ~/.ssh or ~/.aws (enforced by `.claude/settings.json` ask rules). Subagents report back instead of running these.
 - Keep files small and single-purpose. Add tests for pure logic (matching, registry, launch decisions).
