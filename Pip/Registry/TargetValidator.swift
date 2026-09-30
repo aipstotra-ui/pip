@@ -15,7 +15,7 @@ enum TargetValidator {
               t.bundleIds.count <= maxBundleIds,
               t.bundleIds.allSatisfy({ matches($0, #"^[A-Za-z0-9][A-Za-z0-9.-]{0,154}$"#) }),
               t.teamId.map({ matches($0, #"^[A-Z0-9]{10}$"#) }) ?? true,
-              isSafeWebURL(t.webURL)
+              t.webURL.map(isSafeWebURL) ?? true
         else { return false }
 
         // Grouping is a bundled-catalog feature; user files can't attach entries under built-in ones.
@@ -26,7 +26,7 @@ enum TargetValidator {
         switch t.kind {
         case .cli: return source == .bundled && t.cli != nil   // user files can never define commands
         case .app: return !t.bundleIds.isEmpty && t.cli == nil
-        case .web: return t.cli == nil
+        case .web: return t.cli == nil && t.webURL != nil
         }
     }
 

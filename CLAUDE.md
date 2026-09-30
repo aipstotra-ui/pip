@@ -25,7 +25,7 @@ Requires full Xcode. Always build into `$TMPDIR/pip-dd` (per-user private temp; 
 - Every summon goes through `Launcher.summon(_ target: AITarget)`. Don't open apps anywhere else.
 - AI targets are data (`Registry/catalog.json` + user `custom.json`), never hardcoded in UI.
 - UI and AppKit code is `@MainActor`. No polling timers. Pip animates via `PetAnimator` (Task.sleep between frames, paused when occluded or displays sleep) swapping cached 20×20 CGImages on a CALayer (nearest-neighbor).
-- Pet frames are named `<state>_<n>` in `Assets.xcassets/Pet`.
+- Pet frames are 20×20 `PixelArt` text grids in `Pet/PipSprites.swift` (palette in `PixelArt.swift`); no image assets.
 - Ask the user and wait for an explicit yes before sudo, curl/wget (any download), rm -rf, git push, gh repo create, or reading ~/.ssh or ~/.aws (enforced by `.claude/settings.json` ask rules). Subagents report back instead of running these.
 - Keep files small and single-purpose. Add tests for pure logic (matching, registry, launch decisions).
 

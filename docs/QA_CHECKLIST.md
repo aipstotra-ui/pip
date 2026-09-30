@@ -44,7 +44,20 @@ Last run 2026-09-27: qa-plan decisions all as expected, sandbox active, idle CPU
 
 ## M5 (moved to future development: voice)
 
-## M6–M7
-- [ ] Web override per app is respected
-- [ ] Add a custom app (from a .app and from a URL), reorder, disable
-- [ ] Launch at login works. Position is remembered. Works across multiple monitors
+## M6 Settings
+- [ ] right-click → Settings window opens
+- [ ] reorder apps in the list → the ring reflects the new order on next open
+- [ ] toggle an app off → the ring reflects this on next open
+- [ ] toggle a branch tool (Claude Code / Codex) off → it disappears from the ring
+- [ ] Open as Website toggle per app is respected
+- [ ] add a website (https ok, http refused with error message)
+- [ ] add an installed app signature is verified; unsigned app is refused with message
+- [ ] remove an app with confirmation dialog
+- [ ] shortcut recorder: ⌃⌥P works, P alone shows warning, Esc cancels, Reset clears the binding
+- [ ] ⌘, doesn't open a blank window
+- [ ] apps past 10 enabled are searchable in quick bar only (not shown in ring)
+
+## M7
+- [ ] Launch at login works
+- [ ] Position is remembered across restarts
+- [ ] Works across multiple monitors

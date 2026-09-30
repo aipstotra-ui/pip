@@ -7,9 +7,70 @@ import Carbon.HIToolbox
 /// observed, and no Accessibility or Input Monitoring permission is needed (works in the sandbox).
 @MainActor
 final class HotKey {
-    struct Combo: Equatable, Sendable {
+    struct Combo: Equatable, Sendable, Codable {
         let keyCode: UInt32     // virtual key code, e.g. kVK_Space
         let modifiers: UInt32   // Carbon modifier mask, e.g. controlKey | optionKey
+
+        /// Needs ⌃, ⌥ or ⌘ (Shift alone would steal ordinary typing), and a key that isn't Esc.
+        var isUsable: Bool {
+            let strong = UInt32(controlKey | optionKey | cmdKey)
+            return modifiers & strong != 0 && keyCode != UInt32(kVK_Escape) && keyCode <= 0x7F
+        }
+
+        /// From a key press in the shortcut recorder.
+        init?(event: NSEvent) {
+            guard event.type == .keyDown else { return nil }
+            var mods: UInt32 = 0
+            let flags = event.modifierFlags
+            if flags.contains(.control) { mods |= UInt32(controlKey) }
+            if flags.contains(.option) { mods |= UInt32(optionKey) }
+            if flags.contains(.shift) { mods |= UInt32(shiftKey) }
+            if flags.contains(.command) { mods |= UInt32(cmdKey) }
+            self.init(keyCode: UInt32(event.keyCode), modifiers: mods)
+        }
+
+        init(keyCode: UInt32, modifiers: UInt32) {
+            self.keyCode = keyCode
+            self.modifiers = modifiers
+        }
+
+        /// e.g. "⌃⌥Space".
+        var displayString: String {
+            var s = ""
+            if modifiers & UInt32(controlKey) != 0 { s += "⌃" }
+            if modifiers & UInt32(optionKey) != 0 { s += "⌥" }
+            if modifiers & UInt32(shiftKey) != 0 { s += "⇧" }
+            if modifiers & UInt32(cmdKey) != 0 { s += "⌘" }
+            return s + HotKey.keyName(for: keyCode)
+        }
+    }
+
+    /// A readable name for a virtual key code, using the current keyboard layout for character keys.
+    nonisolated static func keyName(for keyCode: UInt32) -> String {
+        let special: [Int: String] = [
+            kVK_Space: "Space", kVK_Return: "↩", kVK_Tab: "⇥", kVK_Delete: "⌫", kVK_ForwardDelete: "⌦",
+            kVK_Escape: "⎋", kVK_LeftArrow: "←", kVK_RightArrow: "→", kVK_UpArrow: "↑", kVK_DownArrow: "↓",
+            kVK_Home: "↖", kVK_End: "↘", kVK_PageUp: "⇞", kVK_PageDown: "⇟",
+            kVK_F1: "F1", kVK_F2: "F2", kVK_F3: "F3", kVK_F4: "F4", kVK_F5: "F5", kVK_F6: "F6",
+            kVK_F7: "F7", kVK_F8: "F8", kVK_F9: "F9", kVK_F10: "F10", kVK_F11: "F11", kVK_F12: "F12",
+            kVK_F13: "F13", kVK_F14: "F14", kVK_F15: "F15", kVK_F16: "F16", kVK_F17: "F17", kVK_F18: "F18",
+            kVK_F19: "F19", kVK_F20: "F20",
+        ]
+        if let name = special[Int(keyCode)] { return name }
+        guard let source = TISCopyCurrentKeyboardLayoutInputSource()?.takeRetainedValue(),
+              let raw = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData)
+        else { return "Key \(keyCode)" }
+        let layout = unsafeBitCast(raw, to: CFData.self) as Data
+        var deadKeys: UInt32 = 0
+        var chars = [UniChar](repeating: 0, count: 4)
+        var length = 0
+        let status = layout.withUnsafeBytes { buffer -> OSStatus in
+            guard let base = buffer.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return -1 }
+            return UCKeyTranslate(base, UInt16(keyCode), UInt16(kUCKeyActionDisplay), 0, UInt32(LMGetKbdType()),
+                                  OptionBits(kUCKeyTranslateNoDeadKeysBit), &deadKeys, chars.count, &length, &chars)
+        }
+        guard status == noErr, length > 0 else { return "Key \(keyCode)" }
+        return String(utf16CodeUnits: chars, count: length).uppercased()
     }
 
     /// ⌃⌥Space. (⌥Space is the ChatGPT desktop app's default, so Pip avoids it.)

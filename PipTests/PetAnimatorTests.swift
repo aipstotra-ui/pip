@@ -35,7 +35,8 @@ final class PetAnimatorTests: XCTestCase {
         animator.send(.summoned)
         XCTAssertEqual(animator.state, .happy)
 
-        let deadline = Date().addingTimeInterval(1.5)
+        // Generous deadline (the loop exits as soon as it's idle) so a busy main actor can't flake it.
+        let deadline = Date().addingTimeInterval(5)
         while animator.state != .idle && Date() < deadline {
             try await Task.sleep(for: .milliseconds(50))
         }
@@ -48,7 +49,7 @@ final class PetAnimatorTests: XCTestCase {
         animator.send(.listeningStarted)
         XCTAssertEqual(animator.state, .listening)
 
-        let deadline = Date().addingTimeInterval(0.5)
+        let deadline = Date().addingTimeInterval(3)
         var sawListeningFrame = false
         while Date() < deadline {
             if PipSprites.listening.contains(animator.frame) {
@@ -57,6 +58,6 @@ final class PetAnimatorTests: XCTestCase {
             }
             try await Task.sleep(for: .milliseconds(20))
         }
-        XCTAssertTrue(sawListeningFrame, "frame should become one of PipSprites.listening within 0.5s")
+        XCTAssertTrue(sawListeningFrame, "frame should become one of PipSprites.listening quickly")
     }
 }

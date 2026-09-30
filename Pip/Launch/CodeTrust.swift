@@ -27,21 +27,34 @@ enum CodeTrust {
 
     /// Slow for large apps (hashes all resources), so call it off the main thread.
     static func isTrusted(appAt url: URL, bundleId: String, teamId: String?) -> Bool {
+        verifiedTeam(appAt: url, bundleId: bundleId, teamId: teamId) != nil
+    }
+
+    /// Validates the app and returns the team ID sealed in *that same* validated signature
+    /// (never re-reads the file), or nil if it fails. With `teamId`, it must match the pin.
+    static func verifiedTeam(appAt url: URL, bundleId: String, teamId: String?) -> String? {
         var code: SecStaticCode?
         var requirement: SecRequirement?
         guard SecStaticCodeCreateWithPath(url as CFURL, [], &code) == errSecSuccess, let code,
               SecRequirementCreateWithString(requirementString(bundleId: bundleId, teamId: teamId) as CFString,
                                              [], &requirement) == errSecSuccess, let requirement
-        else { return false }
+        else { return nil }
         let flags = SecCSFlags(rawValue: kSecCSStrictValidate | kSecCSCheckAllArchitectures)
-        guard SecStaticCodeCheckValidity(code, flags, requirement) == errSecSuccess else { return false }
-        guard let teamId else { return true }
+        guard SecStaticCodeCheckValidity(code, flags, requirement) == errSecSuccess else { return nil }
 
-        // The team ID is sealed in the (now validated) signature; it must match the pin.
+        // Read from the validated code object, whose signature info is now cached and sealed.
         var info: CFDictionary?
         guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
-              let dict = info as? [String: Any]
-        else { return false }
-        return dict[kSecCodeInfoTeamIdentifier as String] as? String == teamId
+              let team = (info as? [String: Any])?[kSecCodeInfoTeamIdentifier as String] as? String,
+              team.range(of: #"^[A-Z0-9]{10}$"#, options: .regularExpression) != nil
+        else { return nil }
+        if let teamId, team != teamId { return nil }
+        return team
+    }
+
+    /// The signing team of a trusted (Developer ID or App Store) app, used to pin apps the user adds.
+    /// Returns nil unless the app passes the same requirement Pip enforces at launch.
+    static func pinnedTeam(forAppAt url: URL, bundleId: String) -> String? {
+        verifiedTeam(appAt: url, bundleId: bundleId, teamId: nil)
     }
 }

@@ -5,14 +5,15 @@ import SwiftUI
 /// or when it loses focus (e.g. a click elsewhere).
 @MainActor
 final class QuickBarController {
-    private let registry: AppRegistry
+    /// Read on every open, so Settings changes apply the next time the bar appears.
+    private let source: () -> AppRegistry
     /// Called with the chosen target and a screen point near the bar (for follow-up menus).
     private let onSelect: (AITarget, NSPoint) -> Void
     private var panel: QuickBarPanel?
     private var resignObserver: NSObjectProtocol?
 
-    init(registry: AppRegistry, onSelect: @escaping (AITarget, NSPoint) -> Void) {
-        self.registry = registry
+    init(source: @escaping () -> AppRegistry, onSelect: @escaping (AITarget, NSPoint) -> Void) {
+        self.source = source
         self.onSelect = onSelect
     }
 
@@ -27,7 +28,7 @@ final class QuickBarController {
         let mouse = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { $0.frame.contains(mouse) }) ?? NSScreen.main else { return }
 
-        let model = QuickBarModel.make(from: registry)
+        let model = QuickBarModel.make(from: source())
         let visible = screen.visibleFrame
         // The card's top edge stays put at ~22% from the top; the panel grows and shrinks below it.
         let top = visible.maxY - visible.height * 0.22 + QuickBarView.margin.top

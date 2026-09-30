@@ -8,6 +8,13 @@ final class RingMenuModelTests: XCTestCase {
         AITarget(id: id, name: id, webURL: URL(string: "https://example.com")!, kind: kind)
     }
 
+    /// Polls until `condition` holds (or 2s pass). Positive waits poll instead of sleeping a fixed
+    /// amount, so a briefly busy main actor under full-suite load can't make the test flaky.
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now + .seconds(2)
+        while !condition() && ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(10)) }
+    }
+
     /// Ring: a (with branch a-chat, a-kid) at (100,100), b at (200,100). Branch circles at (100,20)/(160,20).
     private func makeModel() -> RingMenuModel {
         let model = RingMenuModel()
@@ -75,7 +82,7 @@ final class RingMenuModelTests: XCTestCase {
         model.closeDelay = .milliseconds(10)
         model.pointerMoved(to: CGPoint(x: 100, y: 100))
         XCTAssertNil(model.openBranchID, "opens after a pause, not instantly")
-        try await Task.sleep(for: .milliseconds(80))
+        try await waitUntil { model.openBranchID == "a" }
         XCTAssertEqual(model.openBranchID, "a")
 
         model.pointerMoved(to: CGPoint(x: 130, y: 60))          // corridor keeps it open
@@ -85,7 +92,7 @@ final class RingMenuModelTests: XCTestCase {
         XCTAssertEqual(model.openBranchID, "a")
 
         model.pointerMoved(to: nil)
-        try await Task.sleep(for: .milliseconds(80))
+        try await waitUntil { model.openBranchID == nil }
         XCTAssertNil(model.openBranchID)
         XCTAssertNil(model.branchFocus)
     }

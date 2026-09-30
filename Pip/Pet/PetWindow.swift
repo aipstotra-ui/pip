@@ -5,6 +5,19 @@ import QuartzCore
 final class PetWindow: NSPanel {
     /// 20×20 sprite at 5× = 100pt.
     static let petSize = NSSize(width: 100, height: 100)
+
+    /// The slime sits low in its 20×20 canvas (idle body spans rows 7–19, center ≈ row 13.5 vs. the
+    /// canvas center at row 10), so the body's center is 3.5 pixels × 5pt below the window's center.
+    static let bodyCenterOffset: CGFloat = -17.5
+
+    /// Middle of Pip's body in screen coordinates: what the ring circles around.
+    var bodyCenter: NSPoint { NSPoint(x: frame.midX, y: frame.midY + Self.bodyCenterOffset) }
+
+    /// The slime's visible body (idle frame: columns 3–16, rows 7–19 of the 20×20 canvas at 5pt),
+    /// in screen coordinates. Speech bubbles and follow-up menus sit just above it.
+    var bodyFrame: NSRect {
+        NSRect(x: frame.minX + 15, y: frame.minY, width: 70, height: 65)
+    }
     private static let autosaveName = "PipPetWindow"
 
     /// Called on a click that didn't turn into a drag.
@@ -13,6 +26,8 @@ final class PetWindow: NSPanel {
     var onDragStart: (() -> Void)?
     /// Called when the pointer moves onto Pip.
     var onHover: (() -> Void)?
+    /// Called on a right-click (or Control-click) on Pip.
+    var onRightClick: (() -> Void)?
 
     let animator = PetAnimator()
     private let petView = PetPixelView(frame: NSRect(origin: .zero, size: PetWindow.petSize))
@@ -153,6 +168,11 @@ private final class PetPixelView: NSView {
         (window as? PetWindow)?.onHover?()
     }
 
+    override func rightMouseDown(with event: NSEvent) {
+        guard pressMouse == nil else { return }   // mid-drag: ignore, the menu would swallow the mouse-up
+        (window as? PetWindow)?.onRightClick?()
+    }
+
     override func mouseDown(with event: NSEvent) {
         pressMouse = NSEvent.mouseLocation
         pressOrigin = window?.frame.origin
@@ -173,7 +193,10 @@ private final class PetPixelView: NSView {
 
     override func mouseUp(with event: NSEvent) {
         defer { pressMouse = nil; pressOrigin = nil; isDragging = false }
-        if !isDragging, pressMouse != nil { (window as? PetWindow)?.onClick?() }
+        if !isDragging, pressMouse != nil {
+            if event.modifierFlags.contains(.control) { (window as? PetWindow)?.onRightClick?() }
+            else { (window as? PetWindow)?.onClick?() }
+        }
     }
 
     // Pip lives in a background app; the first click must reach it without activating anything.

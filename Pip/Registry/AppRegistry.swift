@@ -62,15 +62,21 @@ struct AppRegistry: Sendable {
     static func merge(catalog: [AITarget], custom: [AITarget]) -> [AITarget] {
         let catalogIds = Set(catalog.map(\.id))
         let catalogLabels = Set(catalog.flatMap(labels))
+        let catalogBundleIds = Set(catalog.flatMap(\.bundleIds).map { $0.lowercased() })
         return catalog + custom.filter {
-            !catalogIds.contains($0.id) && catalogLabels.isDisjoint(with: labels(of: $0))
+            !catalogIds.contains($0.id)
+                && catalogLabels.isDisjoint(with: labels(of: $0))
+                && catalogBundleIds.isDisjoint(with: $0.bundleIds.map { $0.lowercased() })
         }
     }
 
-    /// Case-, width- and diacritic-folded names and aliases without spaces, used to detect look-alike entries.
+    /// Names and aliases reduced to a comparable form, used to detect look-alike entries:
+    /// transliterated to Latin (so Cyrillic "Claudе" matches "Claude"), then case-, width- and
+    /// diacritic-folded, without spaces.
     static func labels(of target: AITarget) -> [String] {
         ([target.name] + target.aliases).map {
-            $0.folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
+            ($0.applyingTransform(.toLatin, reverse: false) ?? $0)
+                .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: nil)
                 .filter { !$0.isWhitespace }
         }
     }

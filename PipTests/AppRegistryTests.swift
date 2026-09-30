@@ -184,3 +184,23 @@ final class AppRegistryTests: XCTestCase {
         XCTAssertEqual(registry.children(of: web("child", parent: "a")), [])
     }
 }
+
+/// Security-review follow-ups (M6): cross-script look-alikes and bundle-id case.
+final class AppRegistryLookalikeTests: XCTestCase {
+    private let web = URL(string: "https://example.com")!
+
+    func testCyrillicLookalikeNameIsRejected() {
+        let catalog = [AITarget(id: "claude", name: "Claude", webURL: web, kind: .web)]
+        // "Claudе" ends with CYRILLIC SMALL LETTER IE (U+0435), not Latin "e".
+        let spoof = AITarget(id: "custom-x", name: "Claud\u{0435}", webURL: URL(string: "https://evil.example")!, kind: .web)
+        XCTAssertEqual(AppRegistry.merge(catalog: catalog, custom: [spoof]).map(\.id), ["claude"])
+    }
+
+    func testCustomEntryReusingCatalogBundleIdInAnyCaseIsRejected() {
+        let catalog = [AITarget(id: "claude", name: "Claude", bundleIds: ["com.anthropic.claudefordesktop"],
+                                webURL: web, kind: .app)]
+        let spoof = AITarget(id: "custom-x", name: "Totally Different", bundleIds: ["COM.Anthropic.ClaudeForDesktop"],
+                             webURL: nil, kind: .app)
+        XCTAssertEqual(AppRegistry.merge(catalog: catalog, custom: [spoof]).map(\.id), ["claude"])
+    }
+}

@@ -176,4 +176,95 @@ final class LauncherTests: XCTestCase {
             return XCTFail("expected failed, got \(outcome)")
         }
     }
+
+    // MARK: - preferWeb
+
+    private func appTarget(webURL: URL?, teamId: String? = nil) -> AITarget {
+        AITarget(id: "test-app", name: "Test App", bundleIds: [bundleA], teamId: teamId, webURL: webURL, kind: .app)
+    }
+
+    func testPreferWebOpensWebEvenWhenInstalledAndTrusted() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.runningURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let launcher = Launcher(workspace: workspace)
+        let plan = await launcher.plan(for: appTarget(webURL: webURL), preferWeb: true)
+        XCTAssertEqual(plan, .openWeb(webURL, warning: nil))
+    }
+
+    func testSummonPreferWebOpensOnlyTheWebsite() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let launcher = Launcher(workspace: workspace)
+        let outcome = await launcher.summon(appTarget(webURL: webURL), preferWeb: true)
+        XCTAssertEqual(outcome, .done(warning: nil))
+        XCTAssertEqual(workspace.openedWebURL, webURL)
+        XCTAssertNil(workspace.openedAppURL)
+        XCTAssertNil(workspace.activatedURL)
+    }
+
+    func testPreferWebFalseStillPrefersInstalledApp() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let plan = await Launcher(workspace: workspace).plan(for: appTarget(webURL: webURL), preferWeb: false)
+        XCTAssertEqual(plan, .launch(appURL: installedURLA))
+    }
+
+    func testPreferWebWithoutWebURLAndNotInstalledRefuses() async {
+        let launcher = Launcher(workspace: FakeWorkspace())
+        let plan = await launcher.plan(for: appTarget(webURL: nil), preferWeb: true)
+        XCTAssertEqual(plan, .refuse(reason: "Test App isn't installed."))
+    }
+
+    func testPreferWebWithoutWebURLInstalledAndTrustedLaunchesApp() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let plan = await Launcher(workspace: workspace).plan(for: appTarget(webURL: nil), preferWeb: true)
+        XCTAssertEqual(plan, .launch(appURL: installedURLA))
+    }
+
+    func testPreferWebWithoutWebURLInstalledButUntrustedRefusesWithSignatureMessage() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        // Not trusted.
+        let plan = await Launcher(workspace: workspace).plan(for: appTarget(webURL: nil), preferWeb: true)
+        XCTAssertEqual(plan, .refuse(reason: "Test App didn't pass the signature check, so I didn't open it."))
+    }
+
+    func testSummonRefusalBecomesFailedOutcome() async {
+        let launcher = Launcher(workspace: FakeWorkspace())
+        let outcome = await launcher.summon(appTarget(webURL: nil), preferWeb: true)
+        XCTAssertEqual(outcome, .failed("Test App isn't installed."))
+    }
+
+    func testPreferWebDoesNotAffectCLITargets() async {
+        let launcher = Launcher(workspace: FakeWorkspace())
+        let plan = await launcher.plan(for: makeTarget(kind: .cli, cli: .claude), preferWeb: true)
+        XCTAssertEqual(plan, .runCLI(.claude))
+    }
+
+    func testPreferWebWithUnsafeWebURLRefuses() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let plan = await Launcher(workspace: workspace)
+            .plan(for: appTarget(webURL: URL(string: "http://example.com")!), preferWeb: true)
+        guard case .refuse = plan else { return XCTFail("expected refuse, got \(plan)") }
+    }
+
+    func testWebTargetWithNilWebURLFailsValidation() async {
+        let target = AITarget(id: "test-web", name: "Test Web", webURL: nil, kind: .web)
+        XCTAssertFalse(TargetValidator.isValid(target, source: .user))
+        XCTAssertFalse(TargetValidator.isValid(target, source: .bundled))
+        // And the launcher refuses it rather than opening anything.
+        let workspace = FakeWorkspace()
+        let plan = await Launcher(workspace: workspace).plan(for: target)
+        XCTAssertEqual(plan, .refuse(reason: "Test Web has no web address."))
+        _ = await Launcher(workspace: workspace).summon(target, preferWeb: true)
+        XCTAssertNil(workspace.openedWebURL)
+    }
 }

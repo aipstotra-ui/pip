@@ -36,8 +36,9 @@ final class Launcher {
         self.workspace = workspace
     }
 
-    func summon(_ target: AITarget) async -> Outcome {
-        switch await plan(for: target) {
+    /// `preferWeb`: the user chose "open as website" for this app in Settings.
+    func summon(_ target: AITarget, preferWeb: Bool = false) async -> Outcome {
+        switch await plan(for: target, preferWeb: preferWeb) {
         case .activate(let url):
             return workspace.activate(appAt: url) ? .done(warning: nil) : .failed("Couldn't bring \(target.name) forward.")
         case .launch(let url):
@@ -53,13 +54,17 @@ final class Launcher {
         }
     }
 
-    func plan(for target: AITarget) async -> LaunchPlan {
-        guard TargetValidator.isSafeWebURL(target.webURL) else {
+    func plan(for target: AITarget, preferWeb: Bool = false) async -> LaunchPlan {
+        if let web = target.webURL, !TargetValidator.isSafeWebURL(web) {
             return .refuse(reason: "\(target.name) has an unsafe web address.")
+        }
+        if preferWeb, target.kind == .app, let web = target.webURL {
+            return .openWeb(web, warning: nil)
         }
         switch target.kind {
         case .web:
-            return .openWeb(target.webURL, warning: nil)
+            guard let web = target.webURL else { return .refuse(reason: "\(target.name) has no web address.") }
+            return .openWeb(web, warning: nil)
         case .cli:
             guard let tool = target.cli else { return .refuse(reason: "\(target.name) has no command.") }
             return .runCLI(tool)
@@ -81,10 +86,15 @@ final class Launcher {
                     foundUntrusted = true
                 }
             }
+            guard let web = target.webURL else {
+                return .refuse(reason: foundUntrusted
+                    ? "\(target.name) didn't pass the signature check, so I didn't open it."
+                    : "\(target.name) isn't installed.")
+            }
             let warning = foundUntrusted
                 ? "\(target.name)'s app didn't pass the signature check, so I opened the website instead."
                 : nil
-            return .openWeb(target.webURL, warning: warning)
+            return .openWeb(web, warning: warning)
         }
     }
 }

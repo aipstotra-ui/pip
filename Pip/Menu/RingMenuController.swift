@@ -4,30 +4,35 @@ import SwiftUI
 /// Shows and hides the ring menu around Pip. Closes on selection, Esc, or any click outside the ring.
 @MainActor
 final class RingMenuController {
-    private let registry: AppRegistry
+    /// Read on every open, so Settings changes apply the next time the ring appears.
+    private let source: () -> AppRegistry
     private let onSelect: (AITarget) -> Void
     private var panel: NSPanel?
     private var model: RingMenuModel?
     private var monitors: [Any] = []
 
-    init(registry: AppRegistry, onSelect: @escaping (AITarget) -> Void) {
-        self.registry = registry
+    init(source: @escaping () -> AppRegistry, onSelect: @escaping (AITarget) -> Void) {
+        self.source = source
         self.onSelect = onSelect
     }
 
     var isOpen: Bool { panel != nil }
 
-    func toggle(around petFrame: NSRect) {
-        isOpen ? close() : open(around: petFrame)
+    /// `center` is the point the ring circles, normally the middle of Pip's body (screen coordinates).
+    func toggle(around center: NSPoint) {
+        isOpen ? close() : open(around: center)
     }
 
-    func open(around petFrame: NSRect) {
+    func open(around center: NSPoint) {
         close()
+        let registry = source()
         let targets = registry.topLevel
-        let screen = NSScreen.screens.first { $0.frame.contains(NSPoint(x: petFrame.midX, y: petFrame.midY)) } ?? NSScreen.main
+        // Pip can be dragged partly off-screen, so the body center may be on no screen: use the nearest
+        // one (not NSScreen.main, which may be another display and would put the ring far from Pip).
+        let screen = NSScreen.screens.first { $0.frame.contains(center) }
+            ?? NSScreen.screens.min { Self.distance(from: center, to: $0.frame) < Self.distance(from: center, to: $1.frame) }
         guard !targets.isEmpty, let screen else { return }
 
-        let center = NSPoint(x: petFrame.midX, y: petFrame.midY)
         let entries = targets.map { target in
             RingEntry(target: target, icon: TargetIcon.appIcon(for: target),
                       children: registry.children(of: target).map { ($0, TargetIcon.appIcon(for: $0)) })
@@ -44,12 +49,41 @@ final class RingMenuController {
         }
 
         let panel = RingPanel(contentRect: scene.frame)
-        panel.contentView = NSHostingView(rootView: view)
+        // The scene fixes the panel's size; positions are measured from its top edge. If SwiftUI were
+        // allowed to resize the window to its own preferred size, the top edge would move and the ring
+        // would drift up or down. So the host view never sizes the window.
+        let host = NSHostingView(rootView: view.frame(width: scene.frame.width, height: scene.frame.height))
+        host.sizingOptions = []
+        panel.contentView = host
         panel.orderFrontRegardless()
         panel.makeKey()
         self.panel = panel
         installMonitors()
     }
+
+    #if DEBUG
+    /// QA diagnostic (Debug only): opens the ring for `center` exactly like `open(around:)`, then reports
+    /// whether AppKit kept the panel at the frame the scene asked for, and the ring's shape.
+    static func diagnose(center: NSPoint, screen: NSScreen, entries: [RingEntry]) async -> String {
+        let scene = scene(for: entries, center: center, bounds: screen.visibleFrame, screenFrame: screen.frame)
+        let view = RingMenuView(model: RingMenuModel(), center: scene.center, layout: scene.layout) { _ in }
+        let panel = RingPanel(contentRect: scene.frame)
+        let host = NSHostingView(rootView: view.frame(width: scene.frame.width, height: scene.frame.height))
+        host.sizingOptions = []
+        panel.contentView = host
+        panel.orderFrontRegardless()
+        try? await Task.sleep(for: .milliseconds(120))   // let AppKit/SwiftUI lay out
+        let actual = panel.frame
+        panel.orderOut(nil)
+        // Where the ring's center really lands on screen, given the panel's actual frame.
+        let ringOnScreen = NSPoint(x: actual.minX + scene.center.x, y: actual.maxY - scene.center.y)
+        let drift = NSPoint(x: ringOnScreen.x - center.x, y: ringOnScreen.y - center.y)
+        func r(_ v: CGFloat) -> String { String(format: "%.1f", v) }
+        return "center=(\(r(center.x)),\(r(center.y))) span=\(Int(scene.layout.span)) radius=\(r(scene.layout.radius)) "
+            + "asked=\(NSStringFromRect(scene.frame)) got=\(NSStringFromRect(actual)) "
+            + "drift=(\(r(drift.x)),\(r(drift.y)))"
+    }
+    #endif
 
     func close() {
         monitors.forEach(NSEvent.removeMonitor)
@@ -160,7 +194,14 @@ final class RingMenuController {
             } }
         let branchPoints = fans.flatMap { $0.layout.points + [$0.layout.fanCenter(around: center)] }
         let frame = panelFrame(for: layout, center: center, widestLabel: labels.max() ?? 0, branchPoints: branchPoints)
-            .intersection(screenFrame)
+            // Keep the panel inside the usable area (below the menu bar). macOS won't let a window overlap
+            // the menu bar and silently pushes it down, which shifted the whole ring ~30pt below Pip
+            // whenever Pip was in the upper part of a screen. The ring's icons always fit in this area.
+            // Only the top needs this: the Dock strip (sides/bottom) doesn't push windows, and labels
+            // there stay visible beside the Dock, so the other edges clip to the full screen.
+            .intersection(CGRect(x: screenFrame.minX, y: screenFrame.minY, width: screenFrame.width,
+                                 height: min(bounds.maxY, screenFrame.maxY) - screenFrame.minY))
+            .integral   // AppKit keeps window frames on whole points; local() must use the frame the panel really gets
 
         func local(_ p: CGPoint) -> CGPoint { CGPoint(x: p.x - frame.minX, y: frame.maxY - p.y) }
 
@@ -198,6 +239,10 @@ final class RingMenuController {
         let ring = box(centerline(of: layout, around: center), reach: RingMetrics.band / 2 + RingMetrics.labelGap + 4)
         guard !branchPoints.isEmpty else { return ring }
         return ring.union(box(branchPoints, reach: BranchLayout.pad / 2 + RingMetrics.labelGap + 4))
+    }
+
+    private static func distance(from p: CGPoint, to rect: CGRect) -> CGFloat {
+        hypot(max(rect.minX - p.x, 0, p.x - rect.maxX), max(rect.minY - p.y, 0, p.y - rect.maxY))
     }
 
     /// Points along the ring's centerline (screen coordinates): the arc sampled every few degrees,

@@ -29,7 +29,8 @@ struct AITarget: Codable, Equatable, Identifiable, Sendable {
     let bundleIds: [String]
     /// Apple Team ID that must sign the app, when known. Unpinned apps still need a valid Apple-issued signature.
     let teamId: String?
-    let webURL: URL
+    /// Website to open (or fall back to). Optional for apps added by the user.
+    let webURL: URL?
     let kind: Kind
     /// For `.cli` targets: which tool to run.
     let cli: CLITool?
@@ -37,7 +38,7 @@ struct AITarget: Codable, Equatable, Identifiable, Sendable {
     let parent: String?
 
     init(id: String, name: String, aliases: [String] = [], bundleIds: [String] = [],
-         teamId: String? = nil, webURL: URL, kind: Kind, cli: CLITool? = nil, parent: String? = nil) {
+         teamId: String? = nil, webURL: URL?, kind: Kind, cli: CLITool? = nil, parent: String? = nil) {
         self.id = id
         self.name = name
         self.aliases = aliases
@@ -56,7 +57,7 @@ struct AITarget: Codable, Equatable, Identifiable, Sendable {
         aliases = try c.decodeIfPresent([String].self, forKey: .aliases) ?? []
         bundleIds = try c.decodeIfPresent([String].self, forKey: .bundleIds) ?? []
         teamId = try c.decodeIfPresent(String.self, forKey: .teamId)
-        webURL = try c.decode(URL.self, forKey: .webURL)
+        webURL = try c.decodeIfPresent(URL.self, forKey: .webURL)
         kind = try c.decode(Kind.self, forKey: .kind)
         cli = try c.decodeIfPresent(CLITool.self, forKey: .cli)
         parent = try c.decodeIfPresent(String.self, forKey: .parent)

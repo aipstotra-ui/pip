@@ -47,3 +47,15 @@
 | 2026-09-28 | Pet behavior: stays put; idle breathe/blink; happy bounce after a summon; sleeps after 5 min without interaction; wakes on hover/click/drag; listening frames reserved for M5 | User choice |
 | 2026-09-28 | Rendering: cached 20×20 CGImages swapped on a CALayer (nearest-neighbor), Task.sleep between frames, paused when occluded or displays sleep; no SwiftUI in the pet redraw path | Optimizer measured idle CPU 0.28% → 0.0% and RSS 83 → 80 MB |
 | 2026-09-28 | Voice (M5) moved to future development; listening state/frames kept for later | User decision |
+| 2026-09-28 | Settings: standard macOS Settings window (menu bar + right-click Pip) | User choice |
+| 2026-09-28 | Custom entries: installed Mac apps (signature verified and team pinned at add time) and https websites; no custom terminal tools | User choice; custom commands are too risky |
+| 2026-09-28 | Ring shows the first 10 enabled apps in the user's order; everything enabled stays searchable in the quick bar | User choice |
+| 2026-09-28 | Branch tools (Claude Code, Codex): show/hide only | User choice |
+| 2026-09-28 | Preferences (order, hidden, preferWeb, hotKey) stored as sanitized JSON in UserDefaults `pip.preferences`; custom entries in custom.json | Small, validated, easy to reset |
+| 2026-09-28 | AITarget.webURL is optional (custom apps may have no website); apps without a website refuse with a message instead of falling back | Custom apps |
+| 2026-09-28 | Custom app add: signature verified off the main thread; the team is read from the same validated code object (no re-read) | Security review |
+| 2026-09-28 | Look-alike check transliterates to Latin (catches Cyrillic 'Claudе') and bundle ids are compared case-insensitively | Security review |
+| 2026-09-28 | custom.json written as a 0600 temp file then renamed; saving more than 50 entries is refused, never truncated | Security review |
+| 2026-09-28 | Shortcut recorder pauses the live hotkey while recording; the empty system Settings scene has its command removed (⌘, can't open a blank window) | Code review |
+| 2026-09-29 | Full ring: host view never resizes the panel (sizingOptions = []), ring centered on the slime's body (bodyCenter), panel kept below the menu bar | User saw the ring at varying heights; a Debug sweep (`--qa-ring`) measured macOS pushing the panel down 30–33pt under the menu bar. Now 0 drift at 48 positions |
+| 2026-09-29 | Edge/corner arcs kept as the original 180°/90° candidates | User preferred them over a wider-arc/shifted-center experiment, which was reverted |
