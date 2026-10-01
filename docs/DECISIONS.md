@@ -59,3 +59,7 @@
 | 2026-09-28 | Shortcut recorder pauses the live hotkey while recording; the empty system Settings scene has its command removed (⌘, can't open a blank window) | Code review |
 | 2026-09-29 | Full ring: host view never resizes the panel (sizingOptions = []), ring centered on the slime's body (bodyCenter), panel kept below the menu bar | User saw the ring at varying heights; a Debug sweep (`--qa-ring`) measured macOS pushing the panel down 30–33pt under the menu bar. Now 0 drift at 48 positions |
 | 2026-09-29 | Edge/corner arcs kept as the original 180°/90° candidates | User preferred them over a wider-arc/shifted-center experiment, which was reverted |
+| 2026-09-30 | M7 scope: actionable error bubbles + optimizer pass only; launch at login, multi-monitor recovery, reset position and extras moved to Later | User decision |
+| 2026-09-30 | Error bubbles = PipMessage: what happened + what to do, with at most one button from a closed Action list (Open System Settings → Automation pane, Pip Settings on a tab, Try Again); no links or commands in messages | Friendlier, actionable, and safe |
+| 2026-09-30 | Bubble: clicks pass through for the first 300ms; the button accepts the first click (acceptsFirstMouse); hover pauses hiding via an AppKit tracking area (.activeAlways) | Security and code review |
+| 2026-09-30 | Optimizer pass: menu-bar item created after the first frame (launch ~265→230ms); no icon cache (ring/quick bar open ~10-13ms, and the cache cost +3MB RSS); idle 0.0% CPU, ~77-79MB RSS | Measured |

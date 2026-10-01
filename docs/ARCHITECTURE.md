@@ -28,7 +28,7 @@ click / quick bar → AITarget → Launcher.summon(target)
 | Concern | Files |
 |---|---|
 | App lifecycle, menu bar | `App/PipApp.swift`, `AppDelegate.swift`, `MenuBarController.swift` |
-| Pet window and animation | `Pet/PetWindow.swift (PetPixelView), PetAnimator.swift, PetStateMachine.swift, PipSprites.swift, PixelArt.swift, PixelArtImageCache.swift, SpeechBubble.swift` |
+| Pet window and animation | `Pet/PetWindow.swift (PetPixelView), PetAnimator.swift, PetStateMachine.swift, PipSprites.swift, PixelArt.swift, PixelArtImageCache.swift, SpeechBubble.swift, PipMessage.swift` |
 | Quick bar | `QuickBar/QuickBarController.swift`, `QuickBarView.swift`, `QuickBarModel.swift`, `FuzzyMatcher.swift` |
 | Global hotkey | `App/HotKey.swift` |
 | Voice (future, not built) | planned `Voice/VoiceController.swift`. `PetState.listening` and its frames are already in place |
@@ -36,6 +36,9 @@ click / quick bar → AITarget → Launcher.summon(target)
 | Launching | `Launch/Launcher.swift`, `CodeTrust.swift`, `TerminalLauncher.swift`, `CLIFlow.swift`, `RecentFolders.swift` |
 | Menu | `Menu/BranchLayout.swift`, `RingLayout.swift`, `RingMenuModel.swift`, `RingMenuView.swift`, `RingMenuController.swift`, `AISymbols.swift`, `TargetIcon.swift` |
 | Settings | `Settings/SettingsWindowController.swift`, `SettingsView.swift`, `AppsSettingsView.swift`, `AddWebsiteSheet.swift`, `ShortcutSettingsView.swift`, `ShortcutRecorder.swift`, `TargetStore.swift`, `Preferences.swift`, `CustomTargets.swift` |
+
+## Messages
+SpeechBubble shows a PipMessage (text + optional action). AppDelegate.perform(_:) handles the closed action list (Open System Settings → Automation pane, Pip Settings on a tab, Try Again).
 
 ## AITarget schema
 `{ id, name, aliases[], bundleIds[], teamId?, webURL (https only), kind: app|web|cli, cli?: claude|codex, parent?: id }`

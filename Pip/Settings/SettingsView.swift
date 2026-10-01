@@ -1,19 +1,27 @@
 import SwiftUI
 
+/// Which Settings tab is showing. Shared with the window controller so a speech-bubble button
+/// ("Change Shortcut") can switch tabs even when the window is already open.
+@MainActor
+@Observable
+final class SettingsNavigation {
+    var tab: SettingsView.Tab = .apps
+}
+
 /// Pip's Settings content: an Apps tab (what's in the ring, in what order) and a Shortcut tab.
 struct SettingsView: View {
     enum Tab: Hashable { case apps, shortcut }
 
     let store: TargetStore
-    @State private var tab: Tab
+    @Bindable var navigation: SettingsNavigation
 
-    init(store: TargetStore, initialTab: Tab = .apps) {
+    init(store: TargetStore, navigation: SettingsNavigation = SettingsNavigation()) {
         self.store = store
-        _tab = State(initialValue: initialTab)
+        self.navigation = navigation
     }
 
     var body: some View {
-        TabView(selection: $tab) {
+        TabView(selection: $navigation.tab) {
             AppsSettingsView(store: store)
                 .tabItem { Label("Apps", systemImage: "circle.grid.3x3.fill") }
                 .tag(Tab.apps)

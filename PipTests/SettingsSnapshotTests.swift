@@ -33,7 +33,7 @@ final class SettingsSnapshotTests: XCTestCase {
         for (tab, name) in [(SettingsView.Tab.apps, "apps"), (.shortcut, "shortcut")] {
             for scheme in [NSAppearance.Name.aqua, .darkAqua] {
                 let url = Self.outputDir.appendingPathComponent("settings-\(name)-\(scheme == .darkAqua ? "dark" : "light").png")
-                try render(SettingsView(store: store, initialTab: tab), appearance: scheme, height: tab == .apps ? 900 : 520, to: url)
+                try render(SettingsView(store: store, navigation: { let n = SettingsNavigation(); n.tab = tab; return n }()), appearance: scheme, height: tab == .apps ? 900 : 520, to: url)
                 print("Settings preview: \(url.path)")
             }
         }

@@ -40,18 +40,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         petWindow = pet
         ringMenu = ring
         settings = SettingsWindowController(store: store)
-        let menuBar = MenuBarController(petWindow: pet) { [weak self] in
-            self?.ringMenu?.close()
-            self?.settings?.show()
+        // The status item costs ~14 ms; create it after Pip's first frame is on screen.
+        DispatchQueue.main.async { [weak self, weak pet] in
+            guard let self, let pet else { return }
+            self.menuBar = MenuBarController(petWindow: pet) { [weak self] in
+                self?.ringMenu?.close()
+                self?.settings?.show()
+            }
         }
-        self.menuBar = menuBar
-        pet.onRightClick = { [weak ring, weak pet, weak menuBar] in
+        pet.onRightClick = { [weak self, weak ring, weak pet] in
             guard let pet else { return }
             ring?.close()
             pet.animator.send(.interaction)
-            menuBar?.popUpMenu(at: pet.bodyCenter)
+            self?.menuBar?.popUpMenu(at: pet.bodyCenter)
         }
         cliFlow = CLIFlow { [weak self] message in self?.say(message) }
+        bubble.onAction = { [weak self] action in self?.perform(action) }
 
         let quickBar = QuickBarController(source: { store.visible }) { [weak self] target, anchor in
             self?.summon(target, anchor: anchor)
@@ -60,7 +64,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.applyHotKey = { [weak self] combo in self?.registerHotKey(combo) ?? false }
         store.suspendHotKey = { [weak self] suspended in self?.setHotKeySuspended(suspended) }
         if !registerHotKey(store.hotKey) {
-            say("I couldn't set up the \(store.hotKey.displayString) shortcut, so the quick bar is off for now.")
+            say(PipMessage("\(store.hotKey.displayString) isn't available, so the quick bar is off for now. Pick another shortcut.",
+                           action: .openPipSettings(.shortcut)))
         }
     }
 
@@ -68,24 +73,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func registerHotKey(_ combo: HotKey.Combo) -> Bool {
         let previous = currentHotKeyCombo
         quickBarHotKey?.unregister()
-        quickBarHotKey = HotKey(combo) { [weak self] in
-            self?.ringMenu?.close()
-            self?.quickBar?.toggle()
-        }
+        quickBarHotKey = makeHotKey(combo)
         if quickBarHotKey != nil {
             currentHotKeyCombo = combo
             return true
         }
         if let previous {
-            quickBarHotKey = HotKey(previous) { [weak self] in
-                self?.ringMenu?.close()
-                self?.quickBar?.toggle()
-            }
+            quickBarHotKey = makeHotKey(previous)
         }
         return false
     }
 
     private var currentHotKeyCombo: HotKey.Combo?
+
+    private func makeHotKey(_ combo: HotKey.Combo) -> HotKey? {
+        HotKey(combo) { [weak self] in
+            self?.ringMenu?.close()
+            self?.quickBar?.toggle()
+        }
+    }
 
     /// Recording a new shortcut: drop the live one so its keys reach the recorder; restore it afterwards
     /// unless a new one was registered meanwhile.
@@ -94,10 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             quickBarHotKey?.unregister()
             quickBarHotKey = nil
         } else if quickBarHotKey == nil, let combo = currentHotKeyCombo {
-            quickBarHotKey = HotKey(combo) { [weak self] in
-                self?.ringMenu?.close()
-                self?.quickBar?.toggle()
-            }
+            quickBarHotKey = makeHotKey(combo)
         }
     }
 
@@ -119,7 +122,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func say(_ message: String) {
+    /// Runs a speech-bubble button. The set of actions is closed (see PipMessage.Action).
+    private func perform(_ action: PipMessage.Action) {
+        switch action {
+        case .openAutomationSettings:
+            NSWorkspace.shared.open(PipMessage.automationSettingsURL)
+        case .openPipSettings(let tab):
+            ringMenu?.close()
+            settings?.show(tab: tab == .shortcut ? .shortcut : .apps)
+        case .retry(let targetID):
+            if let target = store.visible.targets.first(where: { $0.id == targetID }) {
+                summon(target)
+            } else {
+                say(PipMessage("That app isn't in Pip anymore, so there's nothing to retry.", action: .openPipSettings(.apps)))
+            }
+        }
+    }
+
+    private func say(_ message: PipMessage) {
         guard let pet = petWindow else { return }
         bubble.show(message, above: pet.bodyFrame)
     }

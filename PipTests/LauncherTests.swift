@@ -216,7 +216,7 @@ final class LauncherTests: XCTestCase {
     func testPreferWebWithoutWebURLAndNotInstalledRefuses() async {
         let launcher = Launcher(workspace: FakeWorkspace())
         let plan = await launcher.plan(for: appTarget(webURL: nil), preferWeb: true)
-        XCTAssertEqual(plan, .refuse(reason: "Test App isn't installed."))
+        XCTAssertEqual(plan, .refuse(reason: "Test App isn't installed on this Mac."))
     }
 
     func testPreferWebWithoutWebURLInstalledAndTrustedLaunchesApp() async {
@@ -232,13 +232,13 @@ final class LauncherTests: XCTestCase {
         workspace.installedURLs[bundleA] = installedURLA
         // Not trusted.
         let plan = await Launcher(workspace: workspace).plan(for: appTarget(webURL: nil), preferWeb: true)
-        XCTAssertEqual(plan, .refuse(reason: "Test App didn't pass the signature check, so I didn't open it."))
+        XCTAssertEqual(plan, .refuse(reason: "Test App didn't pass Pip's safety check, so I didn't open it."))
     }
 
     func testSummonRefusalBecomesFailedOutcome() async {
         let launcher = Launcher(workspace: FakeWorkspace())
         let outcome = await launcher.summon(appTarget(webURL: nil), preferWeb: true)
-        XCTAssertEqual(outcome, .failed("Test App isn't installed."))
+        XCTAssertEqual(outcome, .failed(PipMessage("Test App isn't installed on this Mac.", action: .openPipSettings(.apps))))
     }
 
     func testPreferWebDoesNotAffectCLITargets() async {
@@ -266,5 +266,137 @@ final class LauncherTests: XCTestCase {
         XCTAssertEqual(plan, .refuse(reason: "Test Web has no web address."))
         _ = await Launcher(workspace: workspace).summon(target, preferWeb: true)
         XCTAssertNil(workspace.openedWebURL)
+    }
+
+    // MARK: - Outcome messages and actions
+
+    private var retry: PipMessage.Action { .retry(targetID: "test-app") }
+
+    private func assertFailed(_ outcome: Launcher.Outcome, action: PipMessage.Action?, contains: String,
+                              file: StaticString = #filePath, line: UInt = #line) {
+        guard case .failed(let message) = outcome else {
+            return XCTFail("expected failed, got \(outcome)", file: file, line: line)
+        }
+        XCTAssertEqual(message.action, action, file: file, line: line)
+        XCTAssertTrue(message.text.contains(contains), "\(message.text) should contain \(contains)", file: file, line: line)
+    }
+
+    func testActivateFailureOffersRetry() async {
+        let workspace = FakeWorkspace()
+        workspace.runningURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        workspace.activateResult = false
+        let outcome = await Launcher(workspace: workspace).summon(appTarget(webURL: webURL))
+        assertFailed(outcome, action: retry, contains: "Test App")
+    }
+
+    func testOpenAppFailureOffersRetry() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        workspace.openAppResult = false
+        let outcome = await Launcher(workspace: workspace).summon(appTarget(webURL: webURL))
+        assertFailed(outcome, action: retry, contains: "Test App")
+    }
+
+    func testOpenWebFailureOffersRetry() async {
+        let workspace = FakeWorkspace()
+        workspace.openWebResult = false
+        let outcome = await Launcher(workspace: workspace).summon(makeTarget(kind: .web))
+        assertFailed(outcome, action: retry, contains: "website")
+    }
+
+    func testUntrustedWithWebsiteWarnsAndPointsToAppsSettings() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA   // untrusted
+        let outcome = await Launcher(workspace: workspace).summon(appTarget(webURL: webURL))
+        guard case .done(let warning?) = outcome else { return XCTFail("expected done with warning, got \(outcome)") }
+        XCTAssertEqual(warning.action, .openPipSettings(.apps))
+        XCTAssertTrue(warning.text.contains("safety check"))
+        XCTAssertEqual(workspace.openedWebURL, webURL)
+    }
+
+    func testNotInstalledWithoutWebsiteFailsWithAppsSettings() async {
+        let outcome = await Launcher(workspace: FakeWorkspace()).summon(appTarget(webURL: nil))
+        assertFailed(outcome, action: .openPipSettings(.apps), contains: "isn't installed on this Mac")
+    }
+
+    func testUntrustedWithoutWebsiteFailsWithSafetyCheckMessage() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        let outcome = await Launcher(workspace: workspace).summon(appTarget(webURL: nil))
+        assertFailed(outcome, action: .openPipSettings(.apps), contains: "didn't pass Pip's safety check")
+        XCTAssertNil(workspace.openedAppURL)
+    }
+
+    func testUnsafeURLAtSummonTimeFailsWithAppsSettings() async {
+        let workspace = FakeWorkspace()
+        let outcome = await Launcher(workspace: workspace)
+            .summon(makeTarget(webURL: URL(string: "http://example.com")!, kind: .web))
+        assertFailed(outcome, action: .openPipSettings(.apps), contains: "unsafe")
+        XCTAssertNil(workspace.openedWebURL)
+    }
+
+    func testSuccessHasNoWarning() async {
+        let workspace = FakeWorkspace()
+        workspace.installedURLs[bundleA] = installedURLA
+        workspace.trustedURLs = [installedURLA]
+        let launched = await Launcher(workspace: workspace).summon(appTarget(webURL: webURL))
+        XCTAssertEqual(launched, .done(warning: nil))
+
+        workspace.runningURLs[bundleA] = installedURLA
+        let activated = await Launcher(workspace: workspace).summon(appTarget(webURL: webURL))
+        XCTAssertEqual(activated, .done(warning: nil))
+
+        let web = await Launcher(workspace: FakeWorkspace()).summon(makeTarget(kind: .web))
+        XCTAssertEqual(web, .done(warning: nil))
+    }
+
+    func testMessageToneEveryLauncherMessageIsShortAndEndsWithPeriod() async {
+        var messages: [PipMessage] = []
+        func collect(_ outcome: Launcher.Outcome) {
+            switch outcome {
+            case .done(let warning?): messages.append(warning)
+            case .failed(let message): messages.append(message)
+            default: break
+            }
+        }
+
+        // Use a long name to check the limit holds for realistic names.
+        func target(kind: AITarget.Kind = .app, web: URL?, cli: CLITool? = nil) -> AITarget {
+            AITarget(id: "test-app", name: "Some Fairly Long Assistant Name", bundleIds: [bundleA],
+                     webURL: web, kind: kind, cli: cli)
+        }
+        let unsafe = URL(string: "http://example.com")!
+
+        for (activate, openApp, openWeb) in [(false, true, true), (true, false, true), (true, true, false)] {
+            let w = FakeWorkspace()
+            w.activateResult = activate
+            w.openAppResult = openApp
+            w.openWebResult = openWeb
+            w.runningURLs[bundleA] = installedURLA
+            w.trustedURLs = [installedURLA]
+            collect(await Launcher(workspace: w).summon(target(web: webURL)))
+            w.runningURLs = [:]
+            w.installedURLs[bundleA] = installedURLA
+            collect(await Launcher(workspace: w).summon(target(web: webURL)))
+            collect(await Launcher(workspace: w).summon(target(kind: .web, web: webURL)))
+        }
+
+        let untrusted = FakeWorkspace()
+        untrusted.installedURLs[bundleA] = installedURLA
+        collect(await Launcher(workspace: untrusted).summon(target(web: webURL)))
+        collect(await Launcher(workspace: untrusted).summon(target(web: nil)))
+        collect(await Launcher(workspace: FakeWorkspace()).summon(target(web: nil)))
+        collect(await Launcher(workspace: FakeWorkspace()).summon(target(web: unsafe)))
+        collect(await Launcher(workspace: FakeWorkspace()).summon(target(kind: .web, web: nil)))
+        collect(await Launcher(workspace: FakeWorkspace()).summon(target(kind: .cli, web: nil)))
+
+        XCTAssertGreaterThanOrEqual(messages.count, 9)
+        for message in messages {
+            XCTAssertLessThanOrEqual(message.text.count, 160, message.text)
+            XCTAssertTrue(message.text.hasSuffix("."), message.text)
+            XCTAssertNotNil(message.action, message.text)
+        }
     }
 }

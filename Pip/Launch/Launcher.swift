@@ -25,9 +25,9 @@ protocol WorkspaceProviding {
 @MainActor
 final class Launcher {
     enum Outcome: Equatable {
-        case done(warning: String?)
+        case done(warning: PipMessage?)
         case needsFolder(CLITool)   // CLI target: the caller asks the user for a folder
-        case failed(String)
+        case failed(PipMessage)
     }
 
     private let workspace: WorkspaceProviding
@@ -40,17 +40,24 @@ final class Launcher {
     func summon(_ target: AITarget, preferWeb: Bool = false) async -> Outcome {
         switch await plan(for: target, preferWeb: preferWeb) {
         case .activate(let url):
-            return workspace.activate(appAt: url) ? .done(warning: nil) : .failed("Couldn't bring \(target.name) forward.")
+            return workspace.activate(appAt: url) ? .done(warning: nil)
+                : .failed(PipMessage("Couldn't bring \(target.name) to the front.", action: .retry(targetID: target.id)))
         case .launch(let url):
-            return await workspace.openApp(at: url) ? .done(warning: nil) : .failed("Couldn't open \(target.name).")
+            return await workspace.openApp(at: url) ? .done(warning: nil)
+                : .failed(PipMessage("Couldn't open \(target.name).", action: .retry(targetID: target.id)))
         case .openWeb(let url, let warning):
             // Defense in depth: re-check the URL right before handing it to the browser.
-            guard TargetValidator.isSafeWebURL(url) else { return .failed("Blocked an unsafe link for \(target.name).") }
-            return workspace.openWeb(url) ? .done(warning: warning) : .failed("Couldn't open \(target.name)'s website.")
+            guard TargetValidator.isSafeWebURL(url) else {
+                return .failed(PipMessage("I blocked an unsafe link for \(target.name).", action: .openPipSettings(.apps)))
+            }
+            guard workspace.openWeb(url) else {
+                return .failed(PipMessage("Couldn't open \(target.name)'s website.", action: .retry(targetID: target.id)))
+            }
+            return .done(warning: warning.map { PipMessage($0, action: .openPipSettings(.apps)) })
         case .runCLI(let tool):
             return .needsFolder(tool)
         case .refuse(let reason):
-            return .failed(reason)
+            return .failed(PipMessage(reason, action: .openPipSettings(.apps)))
         }
     }
 
@@ -88,11 +95,11 @@ final class Launcher {
             }
             guard let web = target.webURL else {
                 return .refuse(reason: foundUntrusted
-                    ? "\(target.name) didn't pass the signature check, so I didn't open it."
-                    : "\(target.name) isn't installed.")
+                    ? "\(target.name) didn't pass Pip's safety check, so I didn't open it."
+                    : "\(target.name) isn't installed on this Mac.")
             }
             let warning = foundUntrusted
-                ? "\(target.name)'s app didn't pass the signature check, so I opened the website instead."
+                ? "\(target.name)'s app didn't pass Pip's safety check, so I opened the website instead."
                 : nil
             return .openWeb(web, warning: warning)
         }

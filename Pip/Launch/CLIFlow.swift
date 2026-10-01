@@ -4,10 +4,10 @@ import AppKit
 @MainActor
 final class CLIFlow: NSObject {
     private var recents: [CLITool: RecentFolders] = [:]
-    private let report: (String) -> Void
+    private let report: (PipMessage) -> Void
 
     /// `report` shows a message to the user (Pip's speech bubble).
-    init(report: @escaping (String) -> Void) {
+    init(report: @escaping (PipMessage) -> Void) {
         self.report = report
     }
 
@@ -76,11 +76,12 @@ final class CLIFlow: NSObject {
         case .success:
             recentFolders(for: tool).add(folder)
         case .failure(.automationDenied):
-            report("I need permission to open Terminal. Turn on Pip → Terminal in System Settings › Privacy & Security › Automation.")
+            report(PipMessage("I need permission to control Terminal to start \(tool.displayName). Turn on Pip → Terminal under Automation.",
+                              action: .openAutomationSettings))
         case .failure(.invalidFolder):
-            report("That folder name has characters I can't safely pass to Terminal.")
+            report(PipMessage("That folder's name has characters I can't safely pass to Terminal. Try renaming the folder."))
         case .failure(.scriptFailed):
-            report("Couldn't start \(tool.displayName) in Terminal.")
+            report(PipMessage("Couldn't start \(tool.displayName) in Terminal. Check that Terminal can open, then try again."))
         }
     }
 }

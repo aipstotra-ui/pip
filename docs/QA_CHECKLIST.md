@@ -58,6 +58,14 @@ Last run 2026-09-27: qa-plan decisions all as expected, sandbox active, idle CPU
 - [ ] apps past 10 enabled are searchable in quick bar only (not shown in ring)
 
 ## M7
-- [ ] Launch at login works
-- [ ] Position is remembered across restarts
-- [ ] Works across multiple monitors
+- [ ] Turn off Automation for Terminal → Claude Code → a bubble with "Open System Settings" that works on the first click and opens the Automation page
+- [ ] Hover keeps the bubble
+- [ ] "Try Again" after a failed open
+- [ ] "Change Shortcut" opens Settings on the Shortcut tab
+- [ ] No bubble at idle
+- [ ] Idle CPU 0.0%
+
+### Moved to Later
+- Launch at login works
+- Position is remembered across restarts
+- Works across multiple monitors
