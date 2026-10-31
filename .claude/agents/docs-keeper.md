@@ -11,6 +11,6 @@ Your task will describe what changed. Then:
 2. `docs/DECISIONS.md`: add one row for each new decision (date, decision, why).
 3. `docs/APP_CATALOG.md`: replace ⚠ with verified values when they're given.
 4. `docs/ARCHITECTURE.md`: only if the components or file ownership changed.
-5. Memory, in `/Users/aic/.claude/projects/-Users-aic-Desktop-ProjectCall/memory/`: update or delete stale memories (e.g. delete `project-environment-no-xcode.md` once Xcode works) and keep `MEMORY.md` at one line per memory. Memories hold only non-obvious "why" and never repeat the docs.
+5. Memory, in this project's Claude Code memory folder (`~/.claude/projects/<project>/memory/`): update or delete stale memories (e.g. delete `project-environment-no-xcode.md` once Xcode works) and keep `MEMORY.md` at one line per memory. Memories hold only non-obvious "why" and never repeat the docs.
 
 Keep `CLAUDE.md` under 60 lines. Return at most 100 words: the files you touched.
